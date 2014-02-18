@@ -1,5 +1,5 @@
 isEqual(QT_MAJOR_VERSION, 5) {
-    QT += webkitwidgets network widgets printsupport sql script gui-private
+    QT += webenginewidgets network widgets printsupport sql script gui-private
 } else {
     QT += core gui webkit sql network script
 }
@@ -13,7 +13,7 @@ include(3rdparty/qtsingleapplication.pri)
 include(../defines.pri)
 include(../../translations/translations.pri)
 #include(../../tests/modeltest/modeltest.pri)
-include(plugins/qtwebkit/qtwebkit-plugins.pri)
+# include(plugins/qtwebkit/qtwebkit-plugins.pri)
 
 unix:!contains(DEFINES, "DISABLE_DBUS") QT += dbus
 
@@ -74,32 +74,22 @@ SOURCES += \
     app/qupzilla.cpp \
     app/mainapplication.cpp \
     app/autosaver.cpp \
-    preferences/autofillmanager.cpp \
     bookmarks/bookmarkstoolbar.cpp \
     bookmarks/bookmarksmanager.cpp \
-    cookies/cookiemanager.cpp \
-    cookies/cookiejar.cpp \
     downloads/downloadmanager.cpp \
     history/historymanager.cpp \
     navigation/websearchbar.cpp \
     navigation/locationbar.cpp \
     navigation/locationbarpopup.cpp \
-    network/networkmanagerproxy.cpp \
-    network/networkmanager.cpp \
     other/updater.cpp \
-    other/sourceviewer.cpp \
     preferences/preferences.cpp \
-    rss/rssmanager.cpp \
     other/clearprivatedata.cpp \
     webview/webpage.cpp \
     webview/tabwidget.cpp \
     webview/tabbar.cpp \
-    webview/siteinfo.cpp \
     webview/searchtoolbar.cpp \
     app/commandlineoptions.cpp \
     other/aboutdialog.cpp \
-    plugins/plugins.cpp \
-    plugins/pluginproxy.cpp \
     tools/clickablelabel.cpp \
     downloads/downloadoptionsdialog.cpp \
     tools/treewidget.cpp \
@@ -107,27 +97,13 @@ SOURCES += \
     tools/frame.cpp \
     bookmarks/bookmarksmodel.cpp \
     sidebar/sidebar.cpp \
-    webview/siteinfowidget.cpp \
-    plugins/clicktoflash.cpp \
-    plugins/webpluginfactory.cpp \
     downloads/downloaditem.cpp \
     3rdparty/ecwin7.cpp \
     webview/webtab.cpp \
-    rss/rsswidget.cpp \
-    autofill/autofillnotification.cpp \
-    rss/rssnotification.cpp \
-    preferences/sslmanager.cpp \
     preferences/jsoptions.cpp \
     tools/animatedwidget.cpp \
     tools/htmlhighlighter.cpp \
     tools/colors.cpp \
-    other/sourceviewersearch.cpp \
-    adblock/adblocksubscription.cpp \
-    adblock/adblockrule.cpp \
-    adblock/adblockmanager.cpp \
-    adblock/adblockdialog.cpp \
-    adblock/adblockblockednetworkreply.cpp \
-    adblock/adblockicon.cpp \
     tools/docktitlebarwidget.cpp \
     sidebar/bookmarkssidebar.cpp \
     bookmarks/bookmarkicon.cpp \
@@ -136,7 +112,6 @@ SOURCES += \
     desktopnotifications/desktopnotificationsfactory.cpp \
     tools/progressbar.cpp \
     tools/iconprovider.cpp \
-    network/networkproxyfactory.cpp \
     tools/closedtabsmanager.cpp \
     other/statusbarmessage.cpp \
     tools/buttonbox.cpp \
@@ -147,7 +122,6 @@ SOURCES += \
     other/browsinglibrary.cpp \
     3rdparty/stylehelper.cpp \
     3rdparty/fancytabwidget.cpp \
-    history/webhistoryinterface.cpp \
     tools/toolbutton.cpp \
     navigation/navigationbar.cpp \
     navigation/reloadstopbutton.cpp \
@@ -156,7 +130,6 @@ SOURCES += \
     other/pagescreen.cpp \
     downloads/downloadfilehelper.cpp \
     tools/certificateinfowidget.cpp \
-    webview/webinspectordockwidget.cpp \
     app/profileupdater.cpp \
     preferences/acceptlanguage.cpp \
     opensearch/opensearchreader.cpp \
@@ -173,16 +146,11 @@ SOURCES += \
     tools/iconfetcher.cpp \
     tools/followredirectreply.cpp \
     webview/webhistorywrapper.cpp \
-    tools/pagethumbnailer.cpp \
-    plugins/speeddial.cpp \
     other/databasewriter.cpp \
     bookmarksimport/htmlimporter.cpp \
     tools/enhancedmenu.cpp \
-    navigation/siteicon.cpp \
     navigation/goicon.cpp \
-    rss/rssicon.cpp \
     navigation/downicon.cpp \
-    network/cabundleupdater.cpp \
     app/settings.cpp \
     app/proxystyle.cpp \
     popupwindow/popupwebpage.cpp \
@@ -191,7 +159,6 @@ SOURCES += \
     popupwindow/popuplocationbar.cpp \
     webview/tabbedwebview.cpp \
     webview/webview.cpp \
-    preferences/pluginlistdelegate.cpp \
     popupwindow/popupstatusbarmessage.cpp \
     other/licenseviewer.cpp \
     bookmarksimport/bookmarksimporticonfetcher.cpp \
@@ -208,44 +175,19 @@ SOURCES += \
     history/historyitem.cpp \
     tools/headerview.cpp \
     other/iconchooser.cpp \
-    adblock/adblocktreewidget.cpp \
-    adblock/adblockaddsubscriptiondialog.cpp \
-    tools/emptynetworkreply.cpp \
     3rdparty/processinfo.cpp \
-    preferences/pluginsmanager.cpp \
     other/qzsettings.cpp \
-    other/useragentmanager.cpp \
-    preferences/useragentdialog.cpp \
     session/recoverywidget.cpp \
     session/restoremanager.cpp \
-    network/schemehandlers/qupzillaschemehandler.cpp \
-    network/schemehandlers/adblockschemehandler.cpp \
-    network/schemehandlers/fileschemehandler.cpp \
     tools/listitemdelegate.cpp \
     bookmarks/bookmarkstree.cpp \
-    tools/html5permissions/html5permissionsmanager.cpp \
-    tools/html5permissions/html5permissionsnotification.cpp \
-    tools/html5permissions/html5permissionsdialog.cpp \
-    autofill/pageformcompleter.cpp \
-    autofill/autofill.cpp \
-    network/schemehandlers/ftpschemehandler.cpp \
-    autofill/autofillicon.cpp \
-    autofill/autofillwidget.cpp \
     tools/menubar.cpp \
     navigation/navigationcontainer.cpp \
     tools/horizontallistwidget.cpp \
     tools/mactoolbutton.cpp \
     tools/actioncopy.cpp \
-    network/pac/proxyautoconfig.cpp \
-    network/pac/pacmanager.cpp \
     tools/delayedfilewatcher.cpp \
-    autofill/passwordmanager.cpp \
-    autofill/passwordbackends/databasepasswordbackend.cpp \
-    autofill/passwordbackends/passwordbackend.cpp \
     tools/aesinterface.cpp \
-    autofill/passwordbackends/databaseencryptedpasswordbackend.cpp \
-    network/sslerrordialog.cpp \
-    adblock/adblocksearchtree.cpp \
     tools/tabstackedwidget.cpp \
     tools/combotabbar.cpp
 

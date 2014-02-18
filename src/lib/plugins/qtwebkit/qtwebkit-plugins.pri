@@ -31,7 +31,7 @@ win32 {
     }
 }
 
-!equals(buildPlugin, false) {
+false:!equals(buildPlugin, false) {
     HEADERS += $$PWD/qtwebkitplugin.h \
                $$[QT_INSTALL_HEADERS]/QtWebKit/qwebkitplatformplugin.h
 

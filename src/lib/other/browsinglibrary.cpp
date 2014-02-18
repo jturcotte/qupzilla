@@ -33,7 +33,6 @@ BrowsingLibrary::BrowsingLibrary(QupZilla* mainClass, QWidget* parent)
     , ui(new Ui::BrowsingLibrary)
     , m_historyManager(new HistoryManager(mainClass))
     , m_bookmarksManager(new BookmarksManager(mainClass))
-    , m_rssManager(mApp->rssManager())
     , m_bookmarksLoaded(false)
     , m_rssLoaded(false)
 {
@@ -49,7 +48,6 @@ BrowsingLibrary::BrowsingLibrary(QupZilla* mainClass, QWidget* parent)
 
     ui->tabs->AddTab(m_historyManager, QIcon(":/icons/other/bighistory.png"), tr("History"));
     ui->tabs->AddTab(m_bookmarksManager, QIcon(":/icons/other/bigstar.png"), tr("Bookmarks"));
-    ui->tabs->AddTab(m_rssManager, QIcon(":/icons/other/feed.png"), tr("RSS"));
 
     ui->tabs->SetMode(FancyTabWidget::Mode_LargeSidebar);
     ui->tabs->setFocus();
@@ -78,10 +76,6 @@ void BrowsingLibrary::currentIndexChanged(int index)
         break;
 
     case 2:
-        if (!m_rssLoaded) {
-            m_rssManager->refreshTable();
-            m_rssLoaded = true;
-        }
         ui->searchLine->hide();
         break;
 
@@ -127,17 +121,6 @@ void BrowsingLibrary::showBookmarks(QupZilla* mainClass)
 
 void BrowsingLibrary::showRSS(QupZilla* mainClass)
 {
-    ui->tabs->SetCurrentIndex(2);
-    show();
-    m_rssManager->setMainWindow(mainClass);
-
-    if (!m_rssLoaded) {
-        m_rssManager->refreshTable();
-        m_rssLoaded = true;
-    }
-
-    raise();
-    activateWindow();
 }
 
 void BrowsingLibrary::closeEvent(QCloseEvent* e)
@@ -149,8 +132,6 @@ void BrowsingLibrary::closeEvent(QCloseEvent* e)
     settings.endGroup();
     e->accept();
 
-    // Saves a few megabytes
-    m_rssManager->deleteAllTabs();
     m_rssLoaded = false;
 }
 

@@ -35,7 +35,6 @@
 #include <QStringListModel>
 #include <QMenu>
 #include <QTimer>
-#include <QWebFrame>
 #include <QClipboard>
 #include <QContextMenuEvent>
 
@@ -220,26 +219,6 @@ void WebSearchBar::searchInNewTab()
 
 void WebSearchBar::completeMenuWithAvailableEngines(QMenu* menu)
 {
-    WebView* view = p_QupZilla->weView();
-    QWebFrame* frame = view->page()->mainFrame();
-
-    QWebElementCollection elements = frame->documentElement().findAll(QLatin1String("link[rel=search]"));
-    foreach (const QWebElement &element, elements) {
-        if (element.attribute("type") != QLatin1String("application/opensearchdescription+xml")) {
-            continue;
-        }
-        QUrl url = view->url().resolved(QUrl::fromEncoded(element.attribute("href").toUtf8()));
-        QString title = element.attribute("title");
-
-        if (url.isEmpty()) {
-            continue;
-        }
-        if (title.isEmpty()) {
-            title = view->title();
-        }
-
-        menu->addAction(view->icon(), tr("Add %1 ...").arg(title), this, SLOT(addEngineFromAction()))->setData(url);
-    }
 }
 
 void WebSearchBar::addEngineFromAction()

@@ -30,8 +30,7 @@
 
 #include <QNetworkCookie>
 #include <QMessageBox>
-#include <QWebDatabase>
-#include <QWebSettings>
+#include <QWebEngineSettings>
 #include <QNetworkDiskCache>
 #include <QDateTime>
 #include <QSqlQuery>
@@ -74,21 +73,18 @@ void ClearPrivateData::clearWebDatabases()
 {
     const QString profile = mApp->currentProfilePath();
 
-    QWebDatabase::removeAllDatabases();
     QzTools::removeDir(profile + "Databases");
 }
 
 void ClearPrivateData::clearCache()
 {
     mApp->networkCache()->clear();
-    mApp->webSettings()->clearMemoryCaches();
 
     QFile::remove(mApp->currentProfilePath() + "ApplicationCache.db");
 }
 
 void ClearPrivateData::clearIcons()
 {
-    mApp->webSettings()->clearIconDatabase();
     qIconProvider->clearIconDatabase();
 }
 
@@ -143,10 +139,6 @@ void ClearPrivateData::dialogAccepted()
             const QList<int> &indexes = mApp->history()->indexesFromTimeRange(start, end);
             mApp->history()->deleteHistoryEntry(indexes);
         }
-    }
-
-    if (ui->cookies->isChecked()) {
-        mApp->cookieJar()->setAllCookies(QList<QNetworkCookie>());
     }
 
     if (ui->cache->isChecked()) {

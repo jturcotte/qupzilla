@@ -15,7 +15,7 @@
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 * ============================================================ */
-#ifndef WEB_PLUGIN_FACTORY_H
+#ifdef QTWEBENGINE_DISABLED
 #define WEB_PLUGIN_FACTORY_H
 
 #include <QWebPluginFactory>

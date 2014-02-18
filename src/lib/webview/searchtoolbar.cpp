@@ -86,7 +86,7 @@ void SearchToolBar::hide()
 
 void SearchToolBar::findNext()
 {
-    m_findFlags = QWebPage::FindWrapsAroundDocument;
+    m_findFlags = 0;
     updateFindFlags();
 
     searchText(ui->lineEdit->text());
@@ -94,7 +94,7 @@ void SearchToolBar::findNext()
 
 void SearchToolBar::findPrevious()
 {
-    m_findFlags = QWebPage::FindBackward | QWebPage::FindWrapsAroundDocument;
+    m_findFlags = QWebEnginePage::FindBackward;
     updateFindFlags();
 
     searchText(ui->lineEdit->text());
@@ -103,20 +103,20 @@ void SearchToolBar::findPrevious()
 void SearchToolBar::updateFindFlags()
 {
     if (ui->caseSensitive->isChecked()) {
-        m_findFlags = m_findFlags | QWebPage::FindCaseSensitively;
+        m_findFlags = m_findFlags | QWebEnginePage::FindCaseSensitively;
     }
     else {
-        m_findFlags = m_findFlags & ~QWebPage::FindCaseSensitively;
+        m_findFlags = m_findFlags & ~QWebEnginePage::FindCaseSensitively;
     }
 }
 
 void SearchToolBar::highlightChanged()
 {
     if (ui->highligh->isChecked()) {
-        m_view->findText(ui->lineEdit->text(), m_findFlags | QWebPage::HighlightAllOccurrences);
+        m_view->findText(ui->lineEdit->text(), m_findFlags);
     }
     else {
-        m_view->findText(QString(), QWebPage::HighlightAllOccurrences);
+        m_view->findText(QString());
     }
 }
 
@@ -130,21 +130,23 @@ void SearchToolBar::caseSensitivityChanged()
 void SearchToolBar::searchText(const QString &text)
 {
     // Clear highlighting on page
-    m_view->findText(QString(), QWebPage::HighlightAllOccurrences);
+    m_view->findText(QString());
 
-    bool found = m_view->findText(text, m_findFlags);
+    // FIXME
+    bool found = true;
+    m_view->findText(text, m_findFlags);
 
     if (text.isEmpty()) {
         found = true;
     }
 
     if (ui->highligh->isChecked()) {
-        m_findFlags = QWebPage::HighlightAllOccurrences;
+        m_findFlags = 0;
         updateFindFlags();
         m_view->findText(text, m_findFlags);
     }
     else {
-        m_view->findText(QString(), QWebPage::HighlightAllOccurrences);
+        m_view->findText(QString());
     }
 
     if (!found) {

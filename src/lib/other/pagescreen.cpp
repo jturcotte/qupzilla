@@ -25,7 +25,6 @@
 
 #include <QFileDialog>
 #include <QMessageBox>
-#include <QWebFrame>
 #include <QLabel>
 #include <QTimer>
 #include <QMovie>
@@ -193,53 +192,6 @@ void PageScreen::saveAsDocument(const QString &format)
 
 void PageScreen::createThumbnail()
 {
-    QWebPage* page = m_view->page();
-
-    const int heightLimit = 20000;
-    const QPoint originalScrollPosition = page->mainFrame()->scrollPosition();
-    const QSize originalSize = page->viewportSize();
-    const QSize frameSize = page->mainFrame()->contentsSize();
-    const int verticalScrollbarSize = page->mainFrame()->scrollBarGeometry(Qt::Vertical).width();
-    const int horizontalScrollbarSize = page->mainFrame()->scrollBarGeometry(Qt::Horizontal).height();
-
-    int yPosition = 0;
-    bool canScroll = frameSize.height() > heightLimit;
-
-    // We will split rendering page into smaller parts to avoid infinite loops
-    // or crashes.
-
-    do {
-        int remainingHeight = frameSize.height() - yPosition;
-        if (remainingHeight <= 0) {
-            break;
-        }
-
-        QSize size(frameSize.width(),
-                   remainingHeight > heightLimit ? heightLimit : remainingHeight);
-        page->setViewportSize(size);
-        page->mainFrame()->scroll(0, qMax(0, yPosition - horizontalScrollbarSize));
-
-        QImage image(page->viewportSize().width() - verticalScrollbarSize,
-                     page->viewportSize().height() - horizontalScrollbarSize,
-                     QImage::Format_ARGB32_Premultiplied);
-        QPainter painter(&image);
-        page->mainFrame()->render(&painter);
-        painter.end();
-
-        m_pageImages.append(image);
-
-        canScroll = remainingHeight > heightLimit;
-        yPosition += size.height();
-    }
-    while (canScroll);
-
-    page->setViewportSize(originalSize);
-    page->mainFrame()->setScrollBarValue(Qt::Vertical, originalScrollPosition.y());
-    page->mainFrame()->setScrollBarValue(Qt::Horizontal, originalScrollPosition.x());
-
-    m_imageScaling = new QFutureWatcher<QImage>(this);
-    m_imageScaling->setFuture(QtConcurrent::run(this, &PageScreen::scaleImage));
-    connect(m_imageScaling, SIGNAL(finished()), SLOT(showImage()));
 }
 
 QImage PageScreen::scaleImage()

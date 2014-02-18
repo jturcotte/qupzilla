@@ -43,7 +43,7 @@
  * SUCH DAMAGE.
  */
 
-#ifndef ADBLOCKRULE_H
+#ifdef QTWEBENGINE_DISABLED
 #define ADBLOCKRULE_H
 
 #include <QObject>

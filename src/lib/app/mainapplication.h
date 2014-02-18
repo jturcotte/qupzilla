@@ -29,14 +29,14 @@
 #include "qz_namespace.h"
 
 class QMenu;
-class QWebSettings;
+class QWebEngineSettings;
 class QNetworkDiskCache;
 
 class QupZilla;
 class CookieManager;
 class BrowsingLibrary;
 class History;
-class NetworkManager;
+class QNetworkAccessManager;
 class CookieJar;
 class RSSManager;
 class Updater;
@@ -106,8 +106,8 @@ public:
     CookieManager* cookieManager();
     BrowsingLibrary* browsingLibrary();
     History* history();
-    QWebSettings* webSettings();
-    NetworkManager* networkManager();
+    QWebEngineSettings* webSettings();
+    QNetworkAccessManager* networkManager();
     CookieJar* cookieJar();
     RSSManager* rssManager();
     PluginProxy* plugins();
@@ -172,8 +172,8 @@ private:
     CookieManager* m_cookiemanager;
     BrowsingLibrary* m_browsingLibrary;
     History* m_historymodel;
-    QWebSettings* m_websettings;
-    NetworkManager* m_networkmanager;
+    QWebEngineSettings* m_websettings;
+    QNetworkAccessManager* m_networkmanager;
     CookieJar* m_cookiejar;
     RSSManager* m_rssmanager;
     PluginProxy* m_plugins;

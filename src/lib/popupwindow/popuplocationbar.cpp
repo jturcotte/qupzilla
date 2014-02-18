@@ -55,8 +55,6 @@ PopupLocationBar::PopupLocationBar(QWidget* parent)
     m_siteIcon->setFixedSize(26, 26);
 
     m_bookmarkIcon = new BookmarkIcon(this);
-    m_rssIcon = new RssIcon(this);
-    m_autofillIcon = new AutoFillIcon(this);
 
     m_loadingAnimation = new QLabel(this);
     QMovie* movie = new QMovie(":icons/other/progress.gif", QByteArray(), m_loadingAnimation);
@@ -67,19 +65,13 @@ PopupLocationBar::PopupLocationBar(QWidget* parent)
     rightSpacer->setFixedWidth(3);
 
     addWidget(m_siteIcon, LineEdit::LeftSide);
-    addWidget(m_autofillIcon, LineEdit::RightSide);
     addWidget(m_bookmarkIcon, LineEdit::RightSide);
-    addWidget(m_rssIcon, LineEdit::RightSide);
     addWidget(m_loadingAnimation, LineEdit::RightSide);
     addWidget(rightSpacer, LineEdit::RightSide);
     setLeftMargin(20);
 
     setFixedHeight(26);
     setReadOnly(true);
-
-    // Hide icons by default
-    m_rssIcon->hide();
-    m_autofillIcon->hide();
 }
 
 void PopupLocationBar::setView(PopupWebView* view)
@@ -87,8 +79,6 @@ void PopupLocationBar::setView(PopupWebView* view)
     m_view = view;
 
     m_bookmarkIcon->setWebView(m_view);
-    m_rssIcon->setWebView(m_view);
-    m_autofillIcon->setWebView(m_view);
 
     connect(m_view, SIGNAL(rssChanged(bool)), this, SLOT(showRSSIcon(bool)));
 }
@@ -97,8 +87,6 @@ void PopupLocationBar::startLoading()
 {
     m_loadingAnimation->show();
     m_loadingAnimation->movie()->start();
-
-    m_autofillIcon->hide();
 
     updateTextMargins();
 }
@@ -111,11 +99,6 @@ void PopupLocationBar::stopLoading()
     m_bookmarkIcon->checkBookmark(m_view->url());
 
     WebPage* page = qobject_cast<WebPage*>(m_view->page());
-
-    if (page && page->hasMultipleUsernames()) {
-        m_autofillIcon->setFormData(page->autoFillData());
-        m_autofillIcon->show();
-    }
 
     updateTextMargins();
 }
@@ -133,7 +116,4 @@ void PopupLocationBar::showSiteIcon()
 
 void PopupLocationBar::showRSSIcon(bool state)
 {
-    m_rssIcon->setVisible(state);
-
-    updateTextMargins();
 }

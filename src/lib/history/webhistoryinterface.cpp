@@ -20,7 +20,7 @@
 #include "history.h"
 
 WebHistoryInterface::WebHistoryInterface(QObject* parent)
-    : QWebHistoryInterface(parent)
+    : QWebEngineHistoryInterface(parent)
 {
 }
 

@@ -32,7 +32,7 @@
 #include <QTextStream>
 
 #if QT_VERSION >= 0x050000
-#include <QWebPage>
+#include <QWebEnginePage>
 #else
 #include "qwebkitversion.h"
 #endif
@@ -94,7 +94,6 @@ void qupzilla_signal_handler(int s)
         stream << "Time: " << currentDateTime.toString() << endl;
         stream << "Qt version: " << qVersion() << " (compiled with " << QT_VERSION_STR << ")" << endl;
         stream << "QupZilla version: " << QupZilla::VERSION << endl;
-        stream << "WebKit version: " << qWebKitVersion() << endl;
         stream << endl;
         stream << "============== BACKTRACE ==============" << endl;
 

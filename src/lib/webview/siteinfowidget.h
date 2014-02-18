@@ -15,7 +15,7 @@
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 * ============================================================ */
-#ifndef SITEINFOWIDGET_H
+#ifdef QTWEBENGINE_DISABLED
 #define SITEINFOWIDGET_H
 
 #include <QMenu>

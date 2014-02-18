@@ -43,7 +43,7 @@
  * SUCH DAMAGE.
  */
 
-#ifndef ADBLOCKSUBSCRIPTION_H
+#ifdef QTWEBENGINE_DISABLED
 #define ADBLOCKSUBSCRIPTION_H
 
 #include <QVector>

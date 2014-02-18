@@ -335,9 +335,9 @@ void MacMenuReceiver::quitApp()
     }
 }
 
-void MacMenuReceiver::printPage(QWebFrame* frame)
+void MacMenuReceiver::printPage(QWebEngineFrame* frame)
 {
-    callSlot("printPage", false, Q_ARG(QWebFrame*, frame));
+    callSlot("printPage", false, Q_ARG(QWebEngineFrame*, frame));
 }
 
 void MacMenuReceiver::showBookmarksToolbar()
@@ -345,9 +345,9 @@ void MacMenuReceiver::showBookmarksToolbar()
     callSlot("showBookmarksToolbar");
 }
 
-void MacMenuReceiver::showSource(QWebFrame* frame, const QString &selectedHtml)
+void MacMenuReceiver::showSource(QWebEngineFrame* frame, const QString &selectedHtml)
 {
-    callSlot("showSource", false, Q_ARG(QWebFrame*, frame), Q_ARG(const QString &, selectedHtml));
+    callSlot("showSource", false, Q_ARG(QWebEngineFrame*, frame), Q_ARG(const QString &, selectedHtml));
 }
 
 void MacMenuReceiver::bookmarkPage()

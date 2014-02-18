@@ -82,8 +82,7 @@
 #include <QDesktopServices>
 #include <QPrintPreviewDialog>
 #include <QPrinter>
-#include <QWebFrame>
-#include <QWebHistory>
+#include <QWebEngineHistory>
 #include <QMessageBox>
 #include <QDesktopWidget>
 #include <QToolTip>
@@ -111,7 +110,6 @@ const QString QupZilla::AUTHOR = "David Rosca";
 const QString QupZilla::COPYRIGHT = "2010-2014";
 const QString QupZilla::WWWADDRESS = "http://www.qupzilla.com";
 const QString QupZilla::WIKIADDRESS = "https://github.com/QupZilla/qupzilla/wiki";
-const QString QupZilla::WEBKITVERSION = qWebKitVersion();
 
 QupZilla::QupZilla(Qz::BrowserWindow type, QUrl startUrl)
     : QMainWindow(0)
@@ -266,7 +264,6 @@ void QupZilla::postLaunch()
     }
 #endif
 
-    mApp->plugins()->emitMainWindowCreated(this);
     emit startingCompleted();
 
     m_isStarting = false;
@@ -358,7 +355,6 @@ void QupZilla::setupUi()
     m_privateBrowsing->setPixmap(QPixmap(":/icons/locationbar/privatebrowsing.png"));
     m_privateBrowsing->setVisible(false);
     m_privateBrowsing->setToolTip(tr("Private Browsing Enabled"));
-    m_adblockIcon = new AdBlockIcon(this);
     m_ipLabel = new QLabel(this);
     m_ipLabel->setObjectName("statusbar-ip-label");
     m_ipLabel->setToolTip(tr("IP Address of current page"));
@@ -366,7 +362,6 @@ void QupZilla::setupUi()
     statusBar()->addPermanentWidget(m_progressBar);
     statusBar()->addPermanentWidget(m_ipLabel);
     statusBar()->addPermanentWidget(m_privateBrowsing);
-    statusBar()->addPermanentWidget(m_adblockIcon);
 
     // Workaround for Oxygen tooltips not having transparent background
     QPalette pal = QToolTip::palette();
@@ -586,7 +581,6 @@ void QupZilla::setupMenu()
     m_menuTools->addSeparator();
     m_menuTools->addAction(tr("&Download Manager"), MENU_RECEIVER, SLOT(showDownloadManager()))->setShortcut(QKeySequence("Ctrl+Y"));
     m_menuTools->addAction(tr("&Cookies Manager"), MENU_RECEIVER, SLOT(showCookieManager()));
-    m_menuTools->addAction(tr("&AdBlock"), AdBlockManager::instance(), SLOT(showDialog()));
     m_menuTools->addAction(QIcon(":/icons/menu/rss.png"), tr("RSS &Reader"), MENU_RECEIVER,  SLOT(showRSSManager()));
     m_menuTools->addAction(tr("Web In&spector"), MENU_RECEIVER, SLOT(showWebInspector()))->setShortcut(QKeySequence("Ctrl+Shift+I"));
     m_menuTools->addAction(QIcon::fromTheme("edit-clear"), tr("Clear Recent &History"), MENU_RECEIVER, SLOT(showClearPrivateData()))->setShortcut(QKeySequence("Ctrl+Shift+Del"));
@@ -783,9 +777,6 @@ void QupZilla::loadSettings()
     m_homepage = settings.value("homepage", "qupzilla:start").toUrl();
     settings.endGroup();
 
-    QWebSettings* websettings = mApp->webSettings();
-    websettings->setAttribute(QWebSettings::JavascriptCanAccessClipboard, true);
-
     //Browser Window settings
     settings.beginGroup("Browser-View-Settings");
     bool showStatusBar = settings.value("showStatusBar", true).toBool();
@@ -815,8 +806,6 @@ void QupZilla::loadSettings()
     m_useTabNumberShortcuts = settings.value("useTabNumberShortcuts", true).toBool();
     m_useSpeedDialNumberShortcuts = settings.value("useSpeedDialNumberShortcuts", true).toBool();
     settings.endGroup();
-
-    m_adblockIcon->setEnabled(settings.value("AdBlock/enabled", true).toBool());
 
     statusBar()->setVisible(!isFullScreen() && showStatusBar);
     m_bookmarksToolbar->setVisible(showBookmarksToolbar);
@@ -971,7 +960,6 @@ void QupZilla::receiveMessage(Qz::AppMessageType mes, bool state)
 {
     switch (mes) {
     case Qz::AM_SetAdBlockIconEnabled:
-        m_adblockIcon->setEnabled(state);
         break;
 
     case Qz::AM_CheckPrivateBrowsing:
@@ -1229,10 +1217,6 @@ void QupZilla::aboutToShowViewMenu()
     m_actionTabsOnTop->setChecked(tabsOnTop());
 
     m_actionPageSource->setEnabled(true);
-
-#if QTWEBKIT_FROM_2_3
-    m_actionCaretBrowsing->setChecked(mApp->webSettings()->testAttribute(QWebSettings::CaretBrowsingEnabled));
-#endif
 }
 
 void QupZilla::aboutToHideViewMenu()
@@ -1246,14 +1230,14 @@ void QupZilla::aboutToShowEditMenu()
 {
     WebView* view = weView();
 
-    m_menuEdit->actions().at(0)->setEnabled(view->pageAction(QWebPage::Undo)->isEnabled());
-    m_menuEdit->actions().at(1)->setEnabled(view->pageAction(QWebPage::Redo)->isEnabled());
+    m_menuEdit->actions().at(0)->setEnabled(view->pageAction(QWebEnginePage::Undo)->isEnabled());
+    m_menuEdit->actions().at(1)->setEnabled(view->pageAction(QWebEnginePage::Redo)->isEnabled());
     // Separator
-    m_menuEdit->actions().at(3)->setEnabled(view->pageAction(QWebPage::Cut)->isEnabled());
-    m_menuEdit->actions().at(4)->setEnabled(view->pageAction(QWebPage::Copy)->isEnabled());
-    m_menuEdit->actions().at(5)->setEnabled(view->pageAction(QWebPage::Paste)->isEnabled());
+    m_menuEdit->actions().at(3)->setEnabled(view->pageAction(QWebEnginePage::Cut)->isEnabled());
+    m_menuEdit->actions().at(4)->setEnabled(view->pageAction(QWebEnginePage::Copy)->isEnabled());
+    m_menuEdit->actions().at(5)->setEnabled(view->pageAction(QWebEnginePage::Paste)->isEnabled());
     // Separator
-    m_menuEdit->actions().at(7)->setEnabled(view->pageAction(QWebPage::SelectAll)->isEnabled());
+    m_menuEdit->actions().at(7)->setEnabled(view->pageAction(QWebEnginePage::SelectAll)->isEnabled());
 }
 
 void QupZilla::aboutToHideEditMenu()
@@ -1282,100 +1266,14 @@ void QupZilla::aboutToHideToolsMenu()
 
 void QupZilla::aboutToShowEncodingMenu()
 {
-    m_menuEncoding->clear();
-    QMenu* menuISO = new QMenu("ISO", this);
-    QMenu* menuUTF = new QMenu("UTF", this);
-    QMenu* menuWindows = new QMenu("Windows", this);
-    QMenu* menuIscii = new QMenu("Iscii", this);
-    QMenu* menuOther = new QMenu(tr("Other"), this);
-
-    QList<QByteArray> available = QTextCodec::availableCodecs();
-    qSort(available);
-    const QString activeCodec = mApp->webSettings()->defaultTextEncoding();
-
-    foreach (const QByteArray &name, available) {
-        QTextCodec* codec = QTextCodec::codecForName(name);
-        if (codec && codec->aliases().contains(name)) {
-            continue;
-        }
-
-        const QString nameString = QString::fromUtf8(name);
-
-        QAction* action = new QAction(nameString, 0);
-        action->setData(nameString);
-        action->setCheckable(true);
-        connect(action, SIGNAL(triggered()), MENU_RECEIVER, SLOT(changeEncoding()));
-        if (activeCodec.compare(nameString, Qt::CaseInsensitive) == 0) {
-            action->setChecked(true);
-        }
-
-        if (nameString.startsWith(QLatin1String("ISO"))) {
-            menuISO->addAction(action);
-        }
-        else if (nameString.startsWith(QLatin1String("UTF"))) {
-            menuUTF->addAction(action);
-        }
-        else if (nameString.startsWith(QLatin1String("windows"))) {
-            menuWindows->addAction(action);
-        }
-        else if (nameString.startsWith(QLatin1String("Iscii"))) {
-            menuIscii->addAction(action);
-        }
-        else if (nameString == QLatin1String("System")) {
-            m_menuEncoding->addAction(action);
-        }
-        else {
-            menuOther->addAction(action);
-        }
-    }
-
-    m_menuEncoding->addSeparator();
-    if (!menuISO->isEmpty()) {
-        m_menuEncoding->addMenu(menuISO);
-    }
-    if (!menuUTF->isEmpty()) {
-        m_menuEncoding->addMenu(menuUTF);
-    }
-    if (!menuWindows->isEmpty()) {
-        m_menuEncoding->addMenu(menuWindows);
-    }
-    if (!menuIscii->isEmpty()) {
-        m_menuEncoding->addMenu(menuIscii);
-    }
-    if (!menuOther->isEmpty()) {
-        m_menuEncoding->addMenu(menuOther);
-    }
 }
 
 void QupZilla::changeEncoding(QObject* obj)
 {
-    if (!obj) {
-        obj = sender();
-    }
-
-    if (QAction* action = qobject_cast<QAction*>(obj)) {
-        const QString encoding = action->data().toString();
-        mApp->webSettings()->setDefaultTextEncoding(encoding);
-
-        Settings settings;
-        settings.setValue("Web-Browser-Settings/DefaultEncoding", encoding);
-
-        reload();
-    }
 }
 
 void QupZilla::triggerCaretBrowsing()
 {
-#if QTWEBKIT_FROM_2_3
-    bool enable = !mApp->webSettings()->testAttribute(QWebSettings::CaretBrowsingEnabled);
-
-    Settings settings;
-    settings.beginGroup("Web-Browser-Settings");
-    settings.setValue("CaretBrowsing", enable);
-    settings.endGroup();
-
-    mApp->webSettings()->setAttribute(QWebSettings::CaretBrowsingEnabled, enable);
-#endif
 }
 
 void QupZilla::bookmarkPage()
@@ -1405,27 +1303,27 @@ void QupZilla::goHome()
 
 void QupZilla::editUndo()
 {
-    weView()->triggerPageAction(QWebPage::Undo);
+    weView()->triggerPageAction(QWebEnginePage::Undo);
 }
 
 void QupZilla::editRedo()
 {
-    weView()->triggerPageAction(QWebPage::Redo);
+    weView()->triggerPageAction(QWebEnginePage::Redo);
 }
 
 void QupZilla::editCut()
 {
-    weView()->triggerPageAction(QWebPage::Cut);
+    weView()->triggerPageAction(QWebEnginePage::Cut);
 }
 
 void QupZilla::editCopy()
 {
-    weView()->triggerPageAction(QWebPage::Copy);
+    weView()->triggerPageAction(QWebEnginePage::Copy);
 }
 
 void QupZilla::editPaste()
 {
-    weView()->triggerPageAction(QWebPage::Paste);
+    weView()->triggerPageAction(QWebEnginePage::Paste);
 }
 
 void QupZilla::editSelectAll()
@@ -1465,7 +1363,7 @@ void QupZilla::reload()
 
 void QupZilla::reloadByPassCache()
 {
-    weView()->triggerPageAction(QWebPage::ReloadAndBypassCache);
+    weView()->triggerPageAction(QWebEnginePage::ReloadAndBypassCache);
 }
 
 void QupZilla::loadActionUrl(QObject* obj)
@@ -1521,11 +1419,6 @@ void QupZilla::loadAddress(const QUrl &url)
 
 void QupZilla::showCookieManager()
 {
-    CookieManager* m = mApp->cookieManager();
-    m->refreshTable();
-
-    m->show();
-    m->raise();
 }
 
 
@@ -1561,22 +1454,12 @@ void QupZilla::showPreferences()
     prefs->show();
 }
 
-void QupZilla::showSource(QWebFrame* frame, const QString &selectedHtml)
+void QupZilla::showSource(QWebEngineFrame* frame, const QString &selectedHtml)
 {
-    if (!frame) {
-        frame = weView()->page()->mainFrame();
-    }
-
-    SourceViewer* source = new SourceViewer(frame, selectedHtml);
-    QzTools::centerWidgetToParent(source, this);
-    source->show();
 }
 
 void QupZilla::showPageInfo()
 {
-    SiteInfo* info = new SiteInfo(weView(), this);
-    info->setAttribute(Qt::WA_DeleteOnClose);
-    info->show();
 }
 
 void QupZilla::showBookmarksToolbar()
@@ -1674,26 +1557,6 @@ void QupZilla::showStatusbar()
 
 void QupZilla::showWebInspector(bool toggle)
 {
-    if (m_webInspectorDock) {
-        if (toggle) {
-            m_webInspectorDock.data()->toggleVisibility();
-        }
-        else  {
-            m_webInspectorDock.data()->show();
-        }
-        return;
-    }
-
-    m_webInspectorDock = new WebInspectorDockWidget(this);
-    connect(m_tabWidget, SIGNAL(currentChanged(int)), m_webInspectorDock.data(), SLOT(tabChanged()));
-    addDockWidget(Qt::BottomDockWidgetArea, m_webInspectorDock.data());
-
-#ifdef Q_OS_WIN
-    if (QtWin::isCompositionEnabled()) {
-        applyBlurToMainWindow();
-        m_webInspectorDock.data()->installEventFilter(this);
-    }
-#endif
 }
 
 void QupZilla::showBookmarkImport()
@@ -1966,26 +1829,8 @@ void QupZilla::sendLink()
     weView()->sendPageByMail();
 }
 
-void QupZilla::printPage(QWebFrame* frame)
+void QupZilla::printPage(QWebEngineFrame* frame)
 {
-    QPrintPreviewDialog* dialog = new QPrintPreviewDialog(this);
-    dialog->resize(800, 750);
-    dialog->printer()->setCreator(tr("QupZilla %1 (%2)").arg(VERSION, WWWADDRESS));
-
-    if (!frame) {
-        dialog->printer()->setDocName(QzTools::getFileNameFromUrl(weView()->url()));
-
-        connect(dialog, SIGNAL(paintRequested(QPrinter*)), weView(), SLOT(print(QPrinter*)));
-    }
-    else {
-        dialog->printer()->setDocName(QzTools::getFileNameFromUrl(frame->url()));
-
-        connect(dialog, SIGNAL(paintRequested(QPrinter*)), frame, SLOT(print(QPrinter*)));
-    }
-
-    dialog->exec();
-
-    dialog->deleteLater();
 }
 
 void QupZilla::savePageScreen()
@@ -2003,10 +1848,6 @@ void QupZilla::resizeEvent(QResizeEvent* event)
 
 void QupZilla::keyPressEvent(QKeyEvent* event)
 {
-    if (mApp->plugins()->processKeyPress(Qz::ON_QupZilla, this, event)) {
-        return;
-    }
-
     int number = -1;
     TabbedWebView* view = weView();
 
@@ -2169,13 +2010,6 @@ void QupZilla::keyPressEvent(QKeyEvent* event)
             m_tabWidget->setCurrentIndex(number - 1);
             return;
         }
-        if (event->modifiers() & Qt::ControlModifier && m_useSpeedDialNumberShortcuts) {
-            const QUrl url = mApp->plugins()->speedDial()->urlForShortcut(number - 1);
-            if (url.isValid()) {
-                loadAddress(url);
-                return;
-            }
-        }
     }
 
     QMainWindow::keyPressEvent(event);
@@ -2183,10 +2017,6 @@ void QupZilla::keyPressEvent(QKeyEvent* event)
 
 void QupZilla::keyReleaseEvent(QKeyEvent* event)
 {
-    if (mApp->plugins()->processKeyRelease(Qz::ON_QupZilla, this, event)) {
-        return;
-    }
-
     QMainWindow::keyReleaseEvent(event);
 }
 
@@ -2285,8 +2115,6 @@ void QupZilla::disconnectObjects()
             pointer.data()->deleteLater();
         }
     }
-
-    mApp->plugins()->emitMainWindowDeleted(this);
 }
 
 void QupZilla::closeWindow()

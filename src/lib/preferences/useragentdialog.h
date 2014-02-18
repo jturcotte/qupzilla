@@ -15,7 +15,7 @@
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 * ============================================================ */
-#ifndef USERAGENTDIALOG_H
+#ifdef QTWEBENGINE_DISABLED
 #define USERAGENTDIALOG_H
 
 #include <QDialog>

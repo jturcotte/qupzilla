@@ -30,7 +30,7 @@
 #include <QFileIconProvider>
 #include <QListWidgetItem>
 #include <QTemporaryFile>
-#include <QWebHistory>
+#include <QWebEngineHistory>
 #include <QDebug>
 #include <QFileDialog>
 

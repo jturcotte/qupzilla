@@ -22,10 +22,10 @@
 #include "qztools.h"
 
 #include <QNetworkCookie>
-#include <QWebSettings>
+#include <QWebEngineSettings>
 #include <QDateTime>
 #include <QDebug>
-#include <QWebPage> // QTWEBKIT_VERSION_CHECK macro
+#include <QWebEnginePage> // QTWEBKIT_VERSION_CHECK macro
 
 //#define COOKIE_DEBUG
 
@@ -51,8 +51,8 @@ void CookieJar::loadSettings()
 
 #if QTWEBKIT_FROM_2_3
     mApp->webSettings()->setThirdPartyCookiePolicy(m_blockThirdParty ?
-            QWebSettings::AlwaysBlockThirdPartyCookies :
-            QWebSettings::AlwaysAllowThirdPartyCookies);
+            QWebEngineSettings::AlwaysBlockThirdPartyCookies :
+            QWebEngineSettings::AlwaysAllowThirdPartyCookies);
 #endif
 }
 

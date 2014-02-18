@@ -33,7 +33,7 @@
 #include <QSplitter>
 #include <QHBoxLayout>
 #include <QStackedWidget>
-#include <QWebHistory>
+#include <QWebEngineHistory>
 #include <QMouseEvent>
 #include <QStyleOption>
 
@@ -246,13 +246,13 @@ void NavigationBar::aboutToShowHistoryBackMenu()
         return;
     }
     m_menuBack->clear();
-    QWebHistory* history = p_QupZilla->weView()->history();
+    QWebEngineHistory* history = p_QupZilla->weView()->history();
 
     int curindex = history->currentItemIndex();
     int count = 0;
 
     for (int i = curindex - 1; i >= 0; i--) {
-        QWebHistoryItem item = history->itemAt(i);
+        QWebEngineHistoryItem item = history->itemAt(i);
         if (item.isValid()) {
             QString title = titleForUrl(item.title(), item.url());
 
@@ -281,12 +281,12 @@ void NavigationBar::aboutToShowHistoryNextMenu()
     }
     m_menuForward->clear();
 
-    QWebHistory* history = p_QupZilla->weView()->history();
+    QWebEngineHistory* history = p_QupZilla->weView()->history();
     int curindex = history->currentItemIndex();
     int count = 0;
 
     for (int i = curindex + 1; i < history->count(); i++) {
-        QWebHistoryItem item = history->itemAt(i);
+        QWebEngineHistoryItem item = history->itemAt(i);
         if (item.isValid()) {
             QString title = titleForUrl(item.title(), item.url());
 
@@ -310,7 +310,7 @@ void NavigationBar::aboutToShowHistoryNextMenu()
 
 void NavigationBar::clearHistory()
 {
-    QWebHistory* history = p_QupZilla->weView()->page()->history();
+    QWebEngineHistory* history = p_QupZilla->weView()->page()->history();
     history->clear();
     refreshHistory();
 }
@@ -322,7 +322,7 @@ void NavigationBar::contextMenuRequested(const QPoint &pos)
 
 void NavigationBar::goAtHistoryIndex()
 {
-    QWebHistory* history = p_QupZilla->weView()->page()->history();
+    QWebEngineHistory* history = p_QupZilla->weView()->page()->history();
 
     if (QAction* action = qobject_cast<QAction*>(sender())) {
         history->goToItem(history->itemAt(action->data().toInt()));
@@ -344,7 +344,7 @@ void NavigationBar::goAtHistoryIndexInNewTab(int index)
     TabWidget* tabWidget = p_QupZilla->tabWidget();
     int tabIndex = tabWidget->duplicateTab(tabWidget->currentIndex());
 
-    QWebHistory* history = p_QupZilla->weView(tabIndex)->page()->history();
+    QWebEngineHistory* history = p_QupZilla->weView(tabIndex)->page()->history();
     history->goToItem(history->itemAt(index));
 
     if (qzSettings->newTabPosition == Qz::NT_SelectedTab) {
@@ -358,20 +358,20 @@ void NavigationBar::refreshHistory()
         return;
     }
 
-    QWebHistory* history = p_QupZilla->weView()->page()->history();
+    QWebEngineHistory* history = p_QupZilla->weView()->page()->history();
     m_buttonBack->setEnabled(history->canGoBack());
     m_buttonNext->setEnabled(history->canGoForward());
 }
 
 void NavigationBar::goBack()
 {
-    QWebHistory* history = p_QupZilla->weView()->page()->history();
+    QWebEngineHistory* history = p_QupZilla->weView()->page()->history();
     history->back();
 }
 
 void NavigationBar::goBackInNewTab()
 {
-    QWebHistory* history = p_QupZilla->weView()->page()->history();
+    QWebEngineHistory* history = p_QupZilla->weView()->page()->history();
 
     if (!history->canGoBack()) {
         return;
@@ -387,13 +387,13 @@ void NavigationBar::goBackInNewTab()
 
 void NavigationBar::goForward()
 {
-    QWebHistory* history = p_QupZilla->weView()->page()->history();
+    QWebEngineHistory* history = p_QupZilla->weView()->page()->history();
     history->forward();
 }
 
 void NavigationBar::goForwardInNewTab()
 {
-    QWebHistory* history = p_QupZilla->weView()->page()->history();
+    QWebEngineHistory* history = p_QupZilla->weView()->page()->history();
 
     if (!history->canGoForward()) {
         return;

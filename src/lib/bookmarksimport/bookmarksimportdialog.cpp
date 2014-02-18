@@ -28,7 +28,7 @@
 #include "networkmanager.h"
 #include "qztools.h"
 
-#include <QWebSettings>
+#include <QWebEngineSettings>
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QThread>

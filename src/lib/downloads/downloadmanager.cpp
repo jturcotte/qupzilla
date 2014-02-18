@@ -50,7 +50,7 @@ DownloadManager::DownloadManager(QWidget* parent)
     ui->clearButton->setIcon(QIcon::fromTheme("edit-clear"));
     QzTools::centerWidgetOnScreen(this);
 
-    m_networkManager = mApp->networkManager();
+    m_networkManager = 0;
 
     connect(ui->clearButton, SIGNAL(clicked()), this, SLOT(clearList()));
 
@@ -215,8 +215,6 @@ void DownloadManager::download(const QNetworkRequest &request, const DownloadInf
     // Clearing web page info from request
     QNetworkRequest req = request;
     req.setAttribute((QNetworkRequest::Attribute)(QNetworkRequest::User + 100), 0);
-
-    handleUnsupportedContent(m_networkManager->get(req), info);
 }
 
 void DownloadManager::handleUnsupportedContent(QNetworkReply* reply, const DownloadInfo &info)

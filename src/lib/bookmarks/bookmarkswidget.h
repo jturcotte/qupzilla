@@ -60,7 +60,6 @@ private:
 
     WebView* m_view;
     BookmarksModel* m_bookmarksModel;
-    SpeedDial* m_speedDial;
     bool m_edited;
     BookmarksTree* m_bookmarksTree;
 };

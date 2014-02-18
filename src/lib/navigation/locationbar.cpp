@@ -44,6 +44,7 @@
 #include <QContextMenuEvent>
 #include <QAction>
 #include <QMenu>
+#include <QStyleOptionTabV3>
 
 LocationBar::LocationBar(QupZilla* mainClass)
     : LineEdit(mainClass)
@@ -64,21 +65,9 @@ LocationBar::LocationBar(QupZilla* mainClass)
 
     m_bookmarkIcon = new BookmarkIcon(this);
     m_goIcon = new GoIcon(this);
-    m_rssIcon = new RssIcon(this);
-    m_siteIcon = new SiteIcon(p_QupZilla, this);
-    m_autofillIcon = new AutoFillIcon(this);
     DownIcon* down = new DownIcon(this);
 
-    // RTL Support
-    // if we don't add 'm_siteIcon' by following code, then we should use suitable padding-left value
-    // but then, when typing RTL text the layout dynamically changed and within RTL layout direction
-    // padding-left is equivalent to padding-right and vice versa, and because style sheet is
-    // not changed dynamically this create padding problems.
-    addWidget(m_siteIcon, LineEdit::LeftSide);
-
-    addWidget(m_autofillIcon, LineEdit::RightSide);
     addWidget(m_bookmarkIcon, LineEdit::RightSide);
-    addWidget(m_rssIcon, LineEdit::RightSide);
     addWidget(m_goIcon, LineEdit::RightSide);
     addWidget(down, LineEdit::RightSide);
 
@@ -99,8 +88,6 @@ LocationBar::LocationBar(QupZilla* mainClass)
 
     // Hide icons by default
     hideGoButton();
-    m_rssIcon->hide();
-    m_autofillIcon->hide();
 
     QTimer::singleShot(0, this, SLOT(updatePlaceHolderText()));
 }
@@ -110,9 +97,6 @@ void LocationBar::setWebView(TabbedWebView* view)
     m_webView = view;
 
     m_bookmarkIcon->setWebView(m_webView);
-    m_rssIcon->setWebView(m_webView);
-    m_siteIcon->setWebView(m_webView);
-    m_autofillIcon->setWebView(m_webView);
 
     connect(m_webView, SIGNAL(loadStarted()), SLOT(onLoadStarted()));
     connect(m_webView, SIGNAL(loadProgress(int)), SLOT(onLoadProgress(int)));
@@ -233,10 +217,8 @@ void LocationBar::textEdit()
 
 void LocationBar::showGoButton()
 {
-    m_rssIconVisible = m_rssIcon->isVisible();
 
     m_bookmarkIcon->hide();
-    m_rssIcon->hide();
     m_goIcon->show();
 
     updateTextMargins();
@@ -244,7 +226,6 @@ void LocationBar::showGoButton()
 
 void LocationBar::hideGoButton()
 {
-    m_rssIcon->setVisible(m_rssIconVisible);
     m_bookmarkIcon->show();
 
     if (!qzSettings->alwaysShowGoIcon) {
@@ -256,8 +237,6 @@ void LocationBar::hideGoButton()
 
 void LocationBar::showRSSIcon(bool state)
 {
-    m_rssIcon->setVisible(state);
-
     updateTextMargins();
 }
 
@@ -281,27 +260,14 @@ void LocationBar::showUrl(const QUrl &url)
 
 void LocationBar::siteIconChanged()
 {
-    QIcon icon_ = m_webView->icon();
-
-    if (icon_.isNull()) {
-        clearIcon();
-    }
-    else {
-        m_siteIcon->setIcon(QIcon(icon_.pixmap(16, 16)));
-    }
 }
 
 void LocationBar::clearIcon()
 {
-    m_siteIcon->setIcon(qIconProvider->emptyWebIcon());
 }
 
 void LocationBar::setPrivacy(bool state)
 {
-    m_siteIcon->setProperty("secured", QVariant(state));
-    m_siteIcon->style()->unpolish(m_siteIcon);
-    m_siteIcon->style()->polish(m_siteIcon);
-
     setProperty("secured", QVariant(state));
     style()->unpolish(this);
     style()->polish(this);
@@ -565,7 +531,6 @@ void LocationBar::keyReleaseEvent(QKeyEvent* event)
 void LocationBar::onLoadStarted()
 {
     m_progressVisible = true;
-    m_autofillIcon->hide();
 }
 
 void LocationBar::onLoadProgress(int progress)
@@ -580,13 +545,6 @@ void LocationBar::onLoadFinished()
 {
     if (qzSettings->showLoadingProgress) {
         QTimer::singleShot(700, this, SLOT(hideProgress()));
-    }
-
-    WebPage* page = qobject_cast<WebPage*>(m_webView->page());
-
-    if (page && page->hasMultipleUsernames()) {
-        m_autofillIcon->setFormData(page->autoFillData());
-        m_autofillIcon->show();
     }
 }
 

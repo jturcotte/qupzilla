@@ -54,7 +54,7 @@ void WebInspectorDockWidget::close()
 
 void WebInspectorDockWidget::show()
 {
-    QWebPage* page = p_QupZilla->weView()->page();
+    QWebEnginePage* page = p_QupZilla->weView()->page();
     QPointer<WebInspector> inspector = m_inspectors[page];
 
     if (!inspector) {

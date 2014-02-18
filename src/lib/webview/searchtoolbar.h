@@ -18,7 +18,7 @@
 #ifndef SEARCHTOOLBAR_H
 #define SEARCHTOOLBAR_H
 
-#include <QWebPage>
+#include <QWebEnginePage>
 
 #include "qz_namespace.h"
 #include "animatedwidget.h"
@@ -63,7 +63,7 @@ private:
     Ui::SearchToolbar* ui;
     WebView* m_view;
 
-    QWebPage::FindFlags m_findFlags;
+    QWebEnginePage::FindFlags m_findFlags;
 };
 
 #endif // SEARCHTOOLBAR_H

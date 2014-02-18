@@ -31,7 +31,7 @@
 //
 // Got an idea how to determine it from kWebKitPart.
 
-PopupWebPage::PopupWebPage(QWebPage::WebWindowType type, QupZilla* mainClass)
+PopupWebPage::PopupWebPage(QWebEnginePage::WebWindowType type, QupZilla* mainClass)
     : WebPage()
     , p_QupZilla(mainClass)
     , m_type(type)

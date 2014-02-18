@@ -83,8 +83,6 @@ Preferences::Preferences(QupZilla* mainClass, QWidget* parent)
     ui->languages->setLayoutDirection(Qt::LeftToRight);
 
     m_themesManager = new ThemeManager(ui->themesWidget, this);
-    m_pluginsList = new PluginsManager(this);
-    ui->pluginsFrame->addWidget(m_pluginsList);
 
 #ifdef DISABLE_CHECK_UPDATES
     ui->checkUpdates->setVisible(false);
@@ -352,21 +350,6 @@ Preferences::Preferences(QupZilla* mainClass, QWidget* parent)
     useExternalDownManagerChanged(ui->useExternalDownManager->isChecked());
     settings.endGroup();
 
-    //FONTS
-    settings.beginGroup("Browser-Fonts");
-    ui->fontStandard->setCurrentFont(QFont(settings.value("StandardFont", mApp->webSettings()->fontFamily(QWebSettings::StandardFont)).toString()));
-    ui->fontCursive->setCurrentFont(QFont(settings.value("CursiveFont", mApp->webSettings()->fontFamily(QWebSettings::CursiveFont)).toString()));
-    ui->fontFantasy->setCurrentFont(QFont(settings.value("FantasyFont", mApp->webSettings()->fontFamily(QWebSettings::FantasyFont)).toString()));
-    ui->fontFixed->setCurrentFont(QFont(settings.value("FixedFont", mApp->webSettings()->fontFamily(QWebSettings::FixedFont)).toString()));
-    ui->fontSansSerif->setCurrentFont(QFont(settings.value("SansSerifFont", mApp->webSettings()->fontFamily(QWebSettings::SansSerifFont)).toString()));
-    ui->fontSerif->setCurrentFont(QFont(settings.value("SerifFont", mApp->webSettings()->fontFamily(QWebSettings::SerifFont)).toString()));
-
-    ui->sizeDefault->setValue(settings.value("DefaultFontSize", mApp->webSettings()->fontSize(QWebSettings::DefaultFontSize)).toInt());
-    ui->sizeFixed->setValue(settings.value("FixedFontSize", mApp->webSettings()->fontSize(QWebSettings::DefaultFixedFontSize)).toInt());
-    ui->sizeMinimum->setValue(settings.value("MinimumFontSize", mApp->webSettings()->fontSize(QWebSettings::MinimumFontSize)).toInt());
-    ui->sizeMinimumLogical->setValue(settings.value("MinimumLogicalFontSize", mApp->webSettings()->fontSize(QWebSettings::MinimumLogicalFontSize)).toInt());
-    settings.endGroup();
-
     //KEYBOARD SHORTCUTS
     settings.beginGroup("Shortcuts");
     ui->switchTabsAlt->setChecked(settings.value("useTabNumberShortcuts", true).toBool());
@@ -425,41 +408,6 @@ Preferences::Preferences(QupZilla* mainClass, QWidget* parent)
         ui->languages->addItem(createLanguageItem(loc), loc);
     }
 
-    // Proxy Configuration
-    settings.beginGroup("Web-Proxy");
-    NetworkProxyFactory::ProxyPreference proxyPreference = NetworkProxyFactory::ProxyPreference(settings.value("UseProxy", NetworkProxyFactory::SystemProxy).toInt());
-    QNetworkProxy::ProxyType proxyType = QNetworkProxy::ProxyType(settings.value("ProxyType", QNetworkProxy::HttpProxy).toInt());
-
-    ui->systemProxy->setChecked(proxyPreference == NetworkProxyFactory::SystemProxy);
-    ui->noProxy->setChecked(proxyPreference == NetworkProxyFactory::NoProxy);
-    ui->manualProxy->setChecked(proxyPreference == NetworkProxyFactory::DefinedProxy);
-    ui->pacProxy->setChecked(proxyPreference == NetworkProxyFactory::ProxyAutoConfig);
-    if (proxyType == QNetworkProxy::HttpProxy) {
-        ui->proxyType->setCurrentIndex(0);
-    }
-    else {
-        ui->proxyType->setCurrentIndex(1);
-    }
-
-    ui->proxyServer->setText(settings.value("HostName", "").toString());
-    ui->proxyPort->setText(settings.value("Port", 8080).toString());
-    ui->proxyUsername->setText(settings.value("Username", "").toString());
-    ui->proxyPassword->setText(settings.value("Password", "").toString());
-
-    ui->useHttpsProxy->setChecked(settings.value("UseDifferentProxyForHttps", false).toBool());
-    ui->httpsProxyServer->setText(settings.value("HttpsHostName", "").toString());
-    ui->httpsProxyPort->setText(settings.value("HttpsPort", 8080).toString());
-    ui->httpsProxyUsername->setText(settings.value("HttpsUsername", "").toString());
-    ui->httpsProxyPassword->setText(settings.value("HttpsPassword", "").toString());
-
-    ui->pacUrl->setText(settings.value("PacUrl", QUrl()).toUrl().toString());
-    ui->proxyExceptions->setText(settings.value("ProxyExceptions", QStringList() << "localhost" << "127.0.0.1").toStringList().join(","));
-    settings.endGroup();
-
-    useDifferentProxyForHttpsChanged(ui->useHttpsProxy->isChecked());
-    setManualProxyConfigurationEnabled(proxyPreference == NetworkProxyFactory::DefinedProxy);
-    setProxyAutoConfigEnabled(proxyPreference == NetworkProxyFactory::ProxyAutoConfig);
-
     connect(ui->manualProxy, SIGNAL(toggled(bool)), this, SLOT(setManualProxyConfigurationEnabled(bool)));
     connect(ui->pacProxy, SIGNAL(toggled(bool)), this, SLOT(setProxyAutoConfigEnabled(bool)));
     connect(ui->useHttpsProxy, SIGNAL(toggled(bool)), this, SLOT(useDifferentProxyForHttpsChanged(bool)));
@@ -515,16 +463,6 @@ void Preferences::showStackedPage(QListWidgetItem* item)
     ui->stackedWidget->setCurrentIndex(index);
 
     setNotificationPreviewVisible(index == 9);
-
-    if (index == 10) {
-        m_pluginsList->load();
-    }
-
-    if (index == 7 && !m_autoFillManager) {
-        m_autoFillManager = new AutoFillManager(this);
-        ui->autoFillFrame->addWidget(m_autoFillManager);
-        m_autoFillManager->setVisible(m_autoFillEnabled);
-    }
 }
 
 void Preferences::setNotificationPreviewVisible(bool state)
@@ -626,8 +564,6 @@ void Preferences::chooseExternalDownloadManager()
 
 void Preferences::openUserAgentManager()
 {
-    UserAgentDialog dialog(this);
-    dialog.exec();
 }
 
 void Preferences::downLocChanged(bool state)
@@ -667,23 +603,14 @@ void Preferences::allowHtml5storageChanged(bool stat)
 
 void Preferences::showCookieManager()
 {
-    CookieManager* m = mApp->cookieManager();
-    m->refreshTable();
-
-    m->show();
-    m->raise();
 }
 
 void Preferences::showHtml5Permissions()
 {
-    HTML5PermissionsDialog dialog(this);
-    dialog.exec();
 }
 
 void Preferences::openSslManager()
 {
-    SSLManager* m = new SSLManager(this);
-    m->show();
 }
 
 void Preferences::openJsOptions()
@@ -750,17 +677,10 @@ void Preferences::changeCachePathClicked()
 
 void Preferences::reloadPacFileClicked()
 {
-    mApp->networkManager()->proxyFactory()->pacManager()->downloadPacFile();
 }
 
 void Preferences::showPassManager(bool state)
 {
-    if (m_autoFillManager) {
-        m_autoFillManager->setVisible(state);
-    }
-    else {
-        m_autoFillEnabled = state;
-    }
 }
 
 void Preferences::buttonClicked(QAbstractButton* button)
@@ -1027,60 +947,14 @@ void Preferences::saveSettings()
     settings.setValue("language", ui->languages->itemData(ui->languages->currentIndex()).toString());
     settings.endGroup();
 
-    //Proxy Configuration
-    NetworkProxyFactory::ProxyPreference proxyPreference;
-    if (ui->systemProxy->isChecked()) {
-        proxyPreference = NetworkProxyFactory::SystemProxy;
-    }
-    else if (ui->noProxy->isChecked()) {
-        proxyPreference = NetworkProxyFactory::NoProxy;
-    }
-    else if (ui->pacProxy->isChecked()) {
-        proxyPreference = NetworkProxyFactory::ProxyAutoConfig;
-    }
-    else {
-        proxyPreference = NetworkProxyFactory::DefinedProxy;
-    }
-
-    QNetworkProxy::ProxyType proxyType;
-    if (ui->proxyType->currentIndex() == 0) {
-        proxyType = QNetworkProxy::HttpProxy;
-    }
-    else {
-        proxyType = QNetworkProxy::Socks5Proxy;
-    }
-
-    settings.beginGroup("Web-Proxy");
-    settings.setValue("ProxyType", proxyType);
-    settings.setValue("UseProxy", proxyPreference);
-    settings.setValue("HostName", ui->proxyServer->text());
-    settings.setValue("Port", ui->proxyPort->text().toInt());
-    settings.setValue("Username", ui->proxyUsername->text());
-    settings.setValue("Password", ui->proxyPassword->text());
-
-    settings.setValue("UseDifferentProxyForHttps", ui->useHttpsProxy->isChecked());
-    settings.setValue("HttpsHostName", ui->httpsProxyServer->text());
-    settings.setValue("HttpsPort", ui->httpsProxyPort->text());
-    settings.setValue("HttpsUsername", ui->httpsProxyUsername->text());
-    settings.setValue("HttpsPassword", ui->httpsProxyPassword->text());
-
-    settings.setValue("PacUrl", ui->pacUrl->text());
-    settings.setValue("ProxyExceptions", ui->proxyExceptions->text().split(QLatin1Char(','), QString::SkipEmptyParts));
-    settings.endGroup();
-
     //Profiles
     QSettings profileSettings(mApp->PROFILEDIR + "profiles/profiles.ini", QSettings::IniFormat);
     profileSettings.setValue("Profiles/startProfile", ui->startProfile->currentText());
 
-    m_pluginsList->save();
     m_themesManager->save();
-    mApp->cookieJar()->loadSettings();
     mApp->history()->loadSettings();
     mApp->reloadSettings();
-    mApp->plugins()->c2f_saveSettings();
-    mApp->networkManager()->loadSettings();
     mApp->desktopNotifications()->loadSettings();
-    mApp->autoFill()->loadSettings();
 }
 
 Preferences::~Preferences()

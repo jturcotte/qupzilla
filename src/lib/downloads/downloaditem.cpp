@@ -96,23 +96,6 @@ void DownloadItem::startDownloading()
 {
     QUrl locationHeader = m_reply->header(QNetworkRequest::LocationHeader).toUrl();
 
-    bool hasFtpUrlInHeader = locationHeader.isValid() && (locationHeader.scheme() == "ftp");
-    if (m_reply->url().scheme() == "ftp" || hasFtpUrlInHeader) {
-        QUrl url = hasFtpUrlInHeader ? locationHeader : m_reply->url();
-        m_reply->abort();
-        m_reply->deleteLater();
-        m_reply = 0;
-
-        startDownloadingFromFtp(url);
-        return;
-    }
-    else if (locationHeader.isValid()) {
-        m_reply->abort();
-        m_reply->deleteLater();
-
-        m_reply = mApp->networkManager()->get(QNetworkRequest(locationHeader));
-    }
-
     m_reply->setParent(this);
     connect(m_reply, SIGNAL(finished()), this, SLOT(finished()));
     connect(m_reply, SIGNAL(readyRead()), this, SLOT(readyRead()));
@@ -133,27 +116,6 @@ void DownloadItem::startDownloading()
 
 void DownloadItem::startDownloadingFromFtp(const QUrl &url)
 {
-    if (!m_outputFile.isOpen() && !m_outputFile.open(QIODevice::WriteOnly)) {
-        stop(false);
-        ui->downloadInfo->setText(tr("Error: Cannot write to file!"));
-        return;
-    }
-
-    m_ftpDownloader = new FtpDownloader(this);
-    connect(m_ftpDownloader, SIGNAL(finished()), this, SLOT(finished()));
-    connect(m_ftpDownloader, SIGNAL(dataTransferProgress(qint64,qint64)), this, SLOT(downloadProgress(qint64,qint64)));
-    connect(m_ftpDownloader, SIGNAL(errorOccured(QFtp::Error)), this, SLOT(error()));
-    connect(m_ftpDownloader, SIGNAL(ftpAuthenticationRequierd(QUrl,QAuthenticator*)), mApp->networkManager(), SLOT(ftpAuthentication(QUrl,QAuthenticator*)));
-
-    m_ftpDownloader->download(url, &m_outputFile);
-    m_downloading = true;
-    m_timer.start(1000, this);
-
-    QTimer::singleShot(200, this, SLOT(updateDownload()));
-
-    if (m_ftpDownloader->error() != QFtp::NoError) {
-        error();
-    }
 }
 
 void DownloadItem::parentResized(const QSize &size)
@@ -166,14 +128,6 @@ void DownloadItem::parentResized(const QSize &size)
 
 void DownloadItem::metaDataChanged()
 {
-    QUrl locationHeader = m_reply->header(QNetworkRequest::LocationHeader).toUrl();
-    if (locationHeader.isValid()) {
-        m_reply->close();
-        m_reply->deleteLater();
-
-        m_reply = mApp->networkManager()->get(QNetworkRequest(locationHeader));
-        startDownloading();
-    }
 }
 
 void DownloadItem::finished()
@@ -183,7 +137,7 @@ void DownloadItem::finished()
 #endif
     m_timer.stop();
 
-    QString host = m_reply ? m_reply->url().host() : m_ftpDownloader->url().host();
+    QString host = m_reply->url().host();
     ui->downloadInfo->setText(tr("Done - %1").arg(host));
     ui->progressBar->hide();
     ui->button->hide();
@@ -192,9 +146,6 @@ void DownloadItem::finished()
 
     if (m_reply) {
         m_reply->deleteLater();
-    }
-    else {
-        m_ftpDownloader->deleteLater();
     }
 
     m_item->setSizeHint(sizeHint());
@@ -327,17 +278,10 @@ void DownloadItem::stop(bool askForDeleteFile)
     if (m_reply) {
         host = m_reply->url().host();
     }
-    else if (m_ftpDownloader) {
-        host = m_ftpDownloader->url().host();
-    }
     m_openAfterFinish = false;
     m_timer.stop();
     if (m_reply) {
         m_reply->abort();
-    }
-    else if (m_ftpDownloader) {
-        m_ftpDownloader->abort();
-        m_ftpDownloader->close();
     }
     QString outputfile = QFileInfo(m_outputFile).absoluteFilePath();
     m_outputFile.close();
@@ -456,10 +400,6 @@ void DownloadItem::error()
     if (m_reply && m_reply->error() != QNetworkReply::NoError) {
         ui->downloadInfo->setText(tr("Error: ") + m_reply->errorString());
     }
-    else if (m_ftpDownloader && m_ftpDownloader->error() != QFtp::NoError) {
-        stop(false);
-        ui->downloadInfo->setText(tr("Error: ") + m_ftpDownloader->errorString());
-    }
 }
 
 void DownloadItem::updateDownload()
@@ -470,7 +410,7 @@ void DownloadItem::updateDownload()
     // after caling stop() (from readyRead()) m_reply will be a dangling pointer,
     // thus it should be checked after m_outputFile.isOpen()
     if (ui->progressBar->maximum() == 0 && m_outputFile.isOpen() &&
-            ((m_reply && m_reply->isFinished()) || (m_ftpDownloader && m_ftpDownloader->isFinished()))) {
+            ((m_reply && m_reply->isFinished()))) {
         downloadProgress(0, 0);
         finished();
     }

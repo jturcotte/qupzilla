@@ -28,7 +28,7 @@ class QMenuBar;
 class QLabel;
 class QVBoxLayout;
 class QSplitter;
-class QWebFrame;
+class QWebEngineFrame;
 class QTimer;
 
 class Menu;
@@ -61,7 +61,6 @@ public:
     static const QString COPYRIGHT;
     static const QString WWWADDRESS;
     static const QString WIKIADDRESS;
-    static const QString WEBKITVERSION;
 
     explicit QupZilla(Qz::BrowserWindow type, QUrl startUrl = QUrl());
     ~QupZilla();
@@ -133,8 +132,8 @@ public slots:
 
     void bookmarkPage();
     void loadAddress(const QUrl &url);
-    void showSource(QWebFrame* frame = 0, const QString &selectedHtml = QString());
-    void printPage(QWebFrame* frame = 0);
+    void showSource(QWebEngineFrame* frame = 0, const QString &selectedHtml = QString());
+    void printPage(QWebEngineFrame* frame = 0);
     void showPageInfo();
     void receiveMessage(Qz::AppMessageType mes, bool state);
 

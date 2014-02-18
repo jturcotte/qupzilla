@@ -17,4 +17,4 @@ TEMPLATE = subdirs
 SUBDIRS = src/lib src/main
 CONFIG += ordered
 
-SUBDIRS += src/plugins
+# SUBDIRS += src/plugins

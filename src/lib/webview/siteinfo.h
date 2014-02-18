@@ -15,7 +15,7 @@
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 * ============================================================ */
-#ifndef SITEINFO_H
+#ifdef QTWEBENGINE_DISABLED
 #define SITEINFO_H
 
 #include "qz_namespace.h"

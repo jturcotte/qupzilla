@@ -24,7 +24,6 @@
 #include "iconprovider.h"
 #include "enhancedmenu.h"
 
-#include <QWebFrame>
 #include <QContextMenuEvent>
 
 PopupWebView::PopupWebView(QWidget* parent)
@@ -84,27 +83,10 @@ void PopupWebView::closeView()
 
 void PopupWebView::inspectElement()
 {
-    triggerPageAction(QWebPage::InspectElement);
+    triggerPageAction(QWebEnginePage::InspectElement);
 }
 
 void PopupWebView::contextMenuEvent(QContextMenuEvent* event)
 {
-    m_menu->clear();
-
-    const QWebHitTestResult hitTest = page()->mainFrame()->hitTestContent(event->pos());
-
-    createContextMenu(m_menu, hitTest, event->pos());
-
-    m_menu->addSeparator();
-    m_menu->addAction(tr("Inspect Element"), this, SLOT(inspectElement()));
-
-    if (!m_menu->isEmpty()) {
-        // Prevent choosing first option with double rightclick
-        const QPoint pos = event->globalPos();
-        QPoint p(pos.x(), pos.y() + 1);
-        m_menu->popup(p);
-        return;
-    }
-
     WebView::contextMenuEvent(event);
 }

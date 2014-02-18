@@ -26,7 +26,7 @@
 #include "qz_namespace.h"
 
 class QVBoxLayout;
-class QWebHistory;
+class QWebEngineHistory;
 
 class QupZilla;
 class LocationBar;
@@ -62,7 +62,7 @@ public:
     QUrl url() const;
     QString title() const;
     QIcon icon() const;
-    QWebHistory* history() const;
+    QWebEngineHistory* history() const;
 
     void moveToWindow(QupZilla* window);
 

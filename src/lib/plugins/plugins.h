@@ -15,7 +15,7 @@
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 * ============================================================ */
-#ifndef PLUGINLOADER_H
+#ifdef QTWEBENGINE_DISABLED
 #define PLUGINLOADER_H
 
 #include <QObject>

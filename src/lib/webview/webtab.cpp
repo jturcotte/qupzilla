@@ -27,8 +27,7 @@
 #include "mainapplication.h"
 
 #include <QVBoxLayout>
-#include <QWebHistory>
-#include <QWebFrame>
+#include <QWebEngineHistory>
 #include <QLabel>
 #include <QStyle>
 #include <QTimer>
@@ -171,7 +170,7 @@ QIcon WebTab::icon() const
     }
 }
 
-QWebHistory* WebTab::history() const
+QWebEngineHistory* WebTab::history() const
 {
     return m_view->history();
 }
@@ -301,40 +300,7 @@ void WebTab::p_restoreTab(const WebTab::SavedTab &tab)
 
 QPixmap WebTab::renderTabPreview()
 {
-    TabbedWebView* currentWebView = p_QupZilla->weView();
-    WebPage* page = m_view->page();
-    const QSize oldSize = page->viewportSize();
-    const QPoint originalScrollPosition = page->mainFrame()->scrollPosition();
-
-    // Hack to ensure rendering the same preview before and after the page was shown for the first time
-    // This can occur eg. with opening background tabs
-    if (currentWebView) {
-        page->setViewportSize(currentWebView->size());
-    }
-
-    const int previewWidth = 230;
-    const int previewHeight = 150;
-    const int scrollBarExtent = style()->pixelMetric(QStyle::PM_ScrollBarExtent);
-    const int pageWidth = qMin(page->mainFrame()->contentsSize().width(), 1280);
-    const int pageHeight = (pageWidth / 23 * 15);
-    const qreal scalingFactor = 2 * static_cast<qreal>(previewWidth) / pageWidth;
-
-    page->setViewportSize(QSize(pageWidth, pageHeight));
-
-    QPixmap pageImage((2 * previewWidth) - scrollBarExtent, (2 * previewHeight) - scrollBarExtent);
-    pageImage.fill(Qt::transparent);
-
-    QPainter p(&pageImage);
-    p.scale(scalingFactor, scalingFactor);
-    m_view->page()->mainFrame()->render(&p, QWebFrame::ContentsLayer);
-    p.end();
-
-    page->setViewportSize(oldSize);
-    // Restore also scrollbar positions, to prevent messing scrolling to anchor links
-    page->mainFrame()->setScrollBarValue(Qt::Vertical, originalScrollPosition.y());
-    page->mainFrame()->setScrollBarValue(Qt::Horizontal, originalScrollPosition.x());
-
-    return pageImage.scaled(previewWidth, previewHeight, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    return QPixmap();
 }
 
 void WebTab::showNotification(QWidget* notif)

@@ -27,7 +27,7 @@
 #include "qz_namespace.h"
 #include "opensearchengine.h"
 
-class QWebElement;
+class QWebEngineElement;
 
 class WebView;
 
@@ -68,7 +68,7 @@ public:
     void addEngine(OpenSearchEngine* engine);
     void addEngine(const Engine &engine);
 
-    void addEngineFromForm(const QWebElement &element, WebView* view);
+    void addEngineFromForm(const QWebEngineElement &element, WebView* view);
 
     void removeEngine(const Engine &engine);
 

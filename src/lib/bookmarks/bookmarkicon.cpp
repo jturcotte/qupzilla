@@ -30,7 +30,6 @@
 BookmarkIcon::BookmarkIcon(QWidget* parent)
     : ClickableLabel(parent)
     , m_bookmarksModel(0)
-    , m_speedDial(mApp->plugins()->speedDial())
     , m_view(0)
 {
     setObjectName("locationbar-bookmarkicon");
@@ -41,7 +40,6 @@ BookmarkIcon::BookmarkIcon(QWidget* parent)
     m_bookmarksModel = mApp->bookmarksModel();
     connect(m_bookmarksModel, SIGNAL(bookmarkAdded(BookmarksModel::Bookmark)), this, SLOT(bookmarkAdded(BookmarksModel::Bookmark)));
     connect(m_bookmarksModel, SIGNAL(bookmarkDeleted(BookmarksModel::Bookmark)), this, SLOT(bookmarkDeleted(BookmarksModel::Bookmark)));
-    connect(m_speedDial, SIGNAL(pagesChanged()), this, SLOT(speedDialChanged()));
     connect(this, SIGNAL(clicked(QPoint)), this, SLOT(iconClicked()));
 }
 
@@ -56,7 +54,7 @@ void BookmarkIcon::checkBookmark(const QUrl &url, bool forceCheck)
         return;
     }
 
-    if (m_bookmarksModel->isBookmarked(url) || !m_speedDial->pageForUrl(url).url.isEmpty()) {
+    if (m_bookmarksModel->isBookmarked(url)) {
         setBookmarkSaved();
     }
     else {

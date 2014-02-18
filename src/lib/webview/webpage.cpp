@@ -51,15 +51,14 @@
 
 #include <QDir>
 #include <QMouseEvent>
-#include <QWebHistory>
+#include <QWebEngineHistory>
 #include <QTimer>
 #include <QNetworkReply>
 #include <QDebug>
 #include <QDesktopServices>
 #include <QMessageBox>
 #include <QFileDialog>
-#include <QWebFrame>
-#include <QWebSecurityOrigin>
+#include <QWebEngineSecurityOrigin>
 
 QString WebPage::s_lastUploadLocation = QDir::homePath();
 QUrl WebPage::s_lastUnsupportedUrl;
@@ -67,9 +66,8 @@ QTime WebPage::s_lastUnsupportedUrlTime;
 QList<WebPage*> WebPage::s_livingPages;
 
 WebPage::WebPage(QObject* parent)
-    : QWebPage(parent)
+    : QWebEnginePage(parent)
     , m_view(0)
-    , m_speedDial(mApp->plugins()->speedDial())
     , m_fileWatcher(0)
     , m_runningLoop(0)
     , m_loadProgress(-1)
@@ -77,48 +75,28 @@ WebPage::WebPage(QObject* parent)
     , m_secureStatus(false)
     , m_adjustingScheduled(false)
 {
-    m_javaScriptEnabled = mApp->webSettings()->testAttribute(QWebSettings::JavascriptEnabled);
-
-    m_networkProxy = new NetworkManagerProxy(this);
-    m_networkProxy->setPrimaryNetworkAccessManager(mApp->networkManager());
-    m_networkProxy->setPage(this);
-    setNetworkAccessManager(m_networkProxy);
-
-    setForwardUnsupportedContent(true);
-    setPluginFactory(new WebPluginFactory(this));
     history()->setMaximumItemCount(20);
 
-    connect(this, SIGNAL(unsupportedContent(QNetworkReply*)), this, SLOT(handleUnsupportedContent(QNetworkReply*)));
     connect(this, SIGNAL(loadProgress(int)), this, SLOT(progress(int)));
     connect(this, SIGNAL(loadFinished(bool)), this, SLOT(finished()));
-    connect(this, SIGNAL(printRequested(QWebFrame*)), this, SLOT(printFrame(QWebFrame*)));
+    connect(this, SIGNAL(printRequested(QWebEngineFrame*)), this, SLOT(printFrame(QWebEngineFrame*)));
     connect(this, SIGNAL(downloadRequested(QNetworkRequest)), this, SLOT(downloadRequested(QNetworkRequest)));
     connect(this, SIGNAL(windowCloseRequested()), this, SLOT(windowCloseRequested()));
 
-    connect(this, SIGNAL(databaseQuotaExceeded(QWebFrame*,QString)),
-            this, SLOT(dbQuotaExceeded(QWebFrame*)));
-
-    connect(mainFrame(), SIGNAL(javaScriptWindowObjectCleared()), this, SLOT(addJavaScriptObject()));
-
 #if QTWEBKIT_FROM_2_2
-    connect(this, SIGNAL(featurePermissionRequested(QWebFrame*,QWebPage::Feature)),
-            this, SLOT(featurePermissionRequested(QWebFrame*,QWebPage::Feature)));
+    connect(this, SIGNAL(featurePermissionRequested(QWebEngineFrame*,QWebEnginePage::Feature)),
+            this, SLOT(featurePermissionRequested(QWebEngineFrame*,QWebEnginePage::Feature)));
 #endif
 
 #if QTWEBKIT_FROM_2_3
-    connect(this, SIGNAL(applicationCacheQuotaExceeded(QWebSecurityOrigin*,quint64,quint64)),
-            this, SLOT(appCacheQuotaExceeded(QWebSecurityOrigin*,quint64)));
+    connect(this, SIGNAL(applicationCacheQuotaExceeded(QWebEngineSecurityOrigin*,quint64,quint64)),
+            this, SLOT(appCacheQuotaExceeded(QWebEngineSecurityOrigin*,quint64)));
 #elif QTWEBKIT_FROM_2_2
-    connect(this, SIGNAL(applicationCacheQuotaExceeded(QWebSecurityOrigin*,quint64)),
-            this, SLOT(appCacheQuotaExceeded(QWebSecurityOrigin*,quint64)));
+    connect(this, SIGNAL(applicationCacheQuotaExceeded(QWebEngineSecurityOrigin*,quint64)),
+            this, SLOT(appCacheQuotaExceeded(QWebEngineSecurityOrigin*,quint64)));
 #endif
 
     s_livingPages.append(this);
-}
-
-QUrl WebPage::url() const
-{
-    return mainFrame()->url();
 }
 
 void WebPage::setWebView(TabbedWebView* view)
@@ -159,7 +137,7 @@ void WebPage::scheduleAdjustPage()
 
 bool WebPage::loadingError() const
 {
-    return !mainFrame()->findFirstElement("span[id=\"qupzilla-error-page\"]").isNull();
+    return false;
 }
 
 void WebPage::addRejectedCerts(const QList<QSslCertificate> &certs)
@@ -188,12 +166,6 @@ bool WebPage::containsRejectedCerts(const QList<QSslCertificate> &certs)
     return matches == certs.count();
 }
 
-QWebElement WebPage::activeElement() const
-{
-    QRect activeRect = inputMethodQuery(Qt::ImMicroFocus).toRect();
-    return mainFrame()->hitTestContent(activeRect.center()).element();
-}
-
 bool WebPage::isRunningLoop()
 {
     return m_runningLoop;
@@ -206,13 +178,7 @@ bool WebPage::isLoading() const
 
 void WebPage::urlChanged(const QUrl &url)
 {
-    // Make sure JavaScript is enabled for qupzilla pages regardless of user settings
-    if (url.scheme() == QLatin1String("qupzilla")) {
-        settings()->setAttribute(QWebSettings::JavascriptEnabled, true);
-    }
-
     if (isLoading()) {
-        m_adBlockedEntries.clear();
         m_blockAlerts = false;
     }
 }
@@ -235,8 +201,8 @@ void WebPage::finished()
 
     if (m_adjustingScheduled) {
         m_adjustingScheduled = false;
-        mainFrame()->setZoomFactor(mainFrame()->zoomFactor() + 1);
-        mainFrame()->setZoomFactor(mainFrame()->zoomFactor() - 1);
+        setZoomFactor(zoomFactor() + 1);
+        setZoomFactor(zoomFactor() - 1);
     }
 
     // File scheme watcher
@@ -259,9 +225,6 @@ void WebPage::finished()
         m_fileWatcher->removePaths(m_fileWatcher->files());
     }
 
-    // Autofill
-    m_passwordEntries = mApp->autoFill()->completePage(this);
-
     // AdBlock
     cleanBlockedObjects();
 }
@@ -269,11 +232,11 @@ void WebPage::finished()
 void WebPage::watchedFileChanged(const QString &file)
 {
     if (url().toLocalFile() == file) {
-        triggerAction(QWebPage::Reload);
+        triggerAction(QWebEnginePage::Reload);
     }
 }
 
-void WebPage::printFrame(QWebFrame* frame)
+void WebPage::printFrame(QWebEngineFrame* frame)
 {
     WebView* webView = qobject_cast<WebView*>(view());
     if (!webView) {
@@ -285,67 +248,10 @@ void WebPage::printFrame(QWebFrame* frame)
 
 void WebPage::addJavaScriptObject()
 {
-    // Make sure all other sites have JavaScript set by user preferences
-    // (JavaScript is enabled in WebPage::urlChanged)
-    if (url().scheme() != QLatin1String("qupzilla")) {
-        settings()->setAttribute(QWebSettings::JavascriptEnabled, m_javaScriptEnabled);
-    }
-
-    if (url().toString() != QLatin1String("qupzilla:speeddial")) {
-        return;
-    }
-
-    mainFrame()->addToJavaScriptWindowObject("speeddial", m_speedDial);
-    m_speedDial->addWebFrame(mainFrame());
 }
 
 void WebPage::handleUnsupportedContent(QNetworkReply* reply)
 {
-    if (!reply) {
-        return;
-    }
-
-    const QUrl url = reply->url();
-
-    switch (reply->error()) {
-    case QNetworkReply::NoError:
-        if (reply->header(QNetworkRequest::ContentTypeHeader).isValid()) {
-            QString requestUrl = reply->request().url().toString(QUrl::RemoveFragment | QUrl::RemoveQuery);
-            if (requestUrl.endsWith(QLatin1String(".swf"))) {
-                const QWebElement docElement = mainFrame()->documentElement();
-                const QWebElement object = docElement.findFirst(QString("object[src=\"%1\"]").arg(requestUrl));
-                const QWebElement embed = docElement.findFirst(QString("embed[src=\"%1\"]").arg(requestUrl));
-
-                if (!object.isNull() || !embed.isNull()) {
-                    qDebug() << "WebPage::UnsupportedContent" << url << "Attempt to download flash object on site!";
-                    reply->deleteLater();
-                    return;
-                }
-            }
-            DownloadManager* dManager = mApp->downManager();
-            dManager->handleUnsupportedContent(reply, this);
-            return;
-        }
-        // Falling unsupported content with invalid ContentTypeHeader to be handled as UnknownProtocol
-
-    case QNetworkReply::ProtocolUnknownError: {
-        if (url.scheme() == QLatin1String("file")) {
-            FileSchemeHandler::handleUrl(url);
-            return;
-        }
-
-        qDebug() << "WebPage::UnsupportedContent" << url << "ProtocolUnknowError";
-        desktopServicesOpen(url);
-
-        reply->deleteLater();
-        return;
-    }
-    default:
-        break;
-    }
-
-    qDebug() << "WebPage::UnsupportedContent error" << url << reply->errorString();
-    reply->deleteLater();
 }
 
 void WebPage::handleUnknownProtocol(const QUrl &url)
@@ -433,38 +339,24 @@ void WebPage::windowCloseRequested()
     webView->closeView();
 }
 
-void WebPage::dbQuotaExceeded(QWebFrame* frame)
+void WebPage::dbQuotaExceeded(QWebEngineFrame* frame)
 {
-    if (!frame) {
-        return;
-    }
-
-    const QWebSecurityOrigin origin = frame->securityOrigin();
-    const qint64 oldQuota = origin.databaseQuota();
-
-    frame->securityOrigin().setDatabaseQuota(oldQuota * 2);
 }
 
 #ifdef USE_QTWEBKIT_2_2
-void WebPage::appCacheQuotaExceeded(QWebSecurityOrigin* origin, quint64 originalQuota)
+void WebPage::appCacheQuotaExceeded(QWebEngineSecurityOrigin* origin, quint64 originalQuota)
 {
-    if (!origin) {
-        return;
-    }
-
-    origin->setApplicationCacheQuota(originalQuota * 2);
 }
 
-void WebPage::featurePermissionRequested(QWebFrame* frame, const QWebPage::Feature &feature)
+void WebPage::featurePermissionRequested(QWebEngineFrame* frame, const QWebEnginePage::Feature &feature)
 {
-    mApp->html5permissions()->requestPermissions(this, frame, feature);
 }
 #endif // USE_QTWEBKIT_2_2
 
 bool WebPage::event(QEvent* event)
 {
     if (event->type() == QEvent::Leave) {
-        // QWebPagePrivate::leaveEvent():
+        // QWebEnginePagePrivate::leaveEvent():
         // Fake a mouse move event just outside of the widget, since all
         // the interesting mouse-out behavior like invalidating scrollbars
         // is handled by the WebKit event handler's mouseMoved function.
@@ -499,10 +391,10 @@ bool WebPage::event(QEvent* event)
         }
 
         QMouseEvent fakeEvent(QEvent::MouseMove, mousePos, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
-        return QWebPage::event(&fakeEvent);
+        return QWebEnginePage::event(&fakeEvent);
     }
 
-    return QWebPage::event(event);
+    return QWebEnginePage::event(event);
 }
 
 void WebPage::setSSLCertificate(const QSslCertificate &cert)
@@ -520,12 +412,12 @@ QSslCertificate WebPage::sslCertificate()
     return QSslCertificate();
 }
 
-bool WebPage::acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest &request, NavigationType type)
+bool WebPage::acceptNavigationRequest(QWebEngineFrame* frame, const QNetworkRequest &request, NavigationType type)
 {
     m_lastRequestType = type;
     m_lastRequestUrl = request.url();
 
-    if (type == QWebPage::NavigationTypeFormResubmitted) {
+    if (type == QWebEnginePage::NavigationTypeFormResubmitted) {
         // Don't show this dialog if app is still starting
         if (!view() || !view()->isVisible()) {
             return false;
@@ -539,7 +431,7 @@ bool WebPage::acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest &r
         }
     }
 
-    bool accept = QWebPage::acceptNavigationRequest(frame, request, type);
+    bool accept = QWebEnginePage::acceptNavigationRequest(frame, request, type);
     return accept;
 }
 
@@ -558,7 +450,7 @@ void WebPage::populateNetworkRequest(QNetworkRequest &request)
     }
 }
 
-QWebPage* WebPage::createWindow(QWebPage::WebWindowType type)
+QWebEnginePage* WebPage::createWindow(QWebEnginePage::WebWindowType type)
 {
     if (m_view) {
         return new PopupWebPage(type, m_view->mainWindow());
@@ -574,117 +466,11 @@ QWebPage* WebPage::createWindow(QWebPage::WebWindowType type)
 QObject* WebPage::createPlugin(const QString &classid, const QUrl &url,
                                const QStringList &paramNames, const QStringList &paramValues)
 {
-    Q_UNUSED(url)
-    Q_UNUSED(paramNames)
-    Q_UNUSED(paramValues)
-
-    if (classid == QLatin1String("RecoveryWidget") && mApp->restoreManager() && m_view) {
-        return new RecoveryWidget(m_view, m_view->mainWindow());
-    }
-    else {
-        mainFrame()->load(QUrl("qupzilla:start"));
-    }
-
     return 0;
-}
-
-void WebPage::addAdBlockRule(const AdBlockRule* rule, const QUrl &url)
-{
-    AdBlockedEntry entry;
-    entry.rule = rule;
-    entry.url = url;
-
-    if (!m_adBlockedEntries.contains(entry)) {
-        m_adBlockedEntries.append(entry);
-    }
-}
-
-QVector<WebPage::AdBlockedEntry> WebPage::adBlockedEntries() const
-{
-    return m_adBlockedEntries;
-}
-
-bool WebPage::hasMultipleUsernames() const
-{
-    return m_passwordEntries.count() > 1;
-}
-
-QVector<PasswordEntry> WebPage::autoFillData() const
-{
-    return m_passwordEntries;
 }
 
 void WebPage::cleanBlockedObjects()
 {
-    AdBlockManager* manager = AdBlockManager::instance();
-    if (!manager->isEnabled()) {
-        return;
-    }
-
-    const QWebElement docElement = mainFrame()->documentElement();
-
-    foreach (const AdBlockedEntry &entry, m_adBlockedEntries) {
-        const QString urlString = entry.url.toString();
-        if (urlString.endsWith(QLatin1String(".js")) || urlString.endsWith(QLatin1String(".css"))) {
-            continue;
-        }
-
-        QString urlEnd;
-
-        int pos = urlString.lastIndexOf(QLatin1Char('/'));
-        if (pos > 8) {
-            urlEnd = urlString.mid(pos + 1);
-        }
-
-        if (urlString.endsWith(QLatin1Char('/'))) {
-            urlEnd = urlString.left(urlString.size() - 1);
-        }
-
-        QString selector("img[src$=\"%1\"], iframe[src$=\"%1\"],embed[src$=\"%1\"]");
-        QWebElementCollection elements = docElement.findAll(selector.arg(urlEnd));
-
-        foreach (QWebElement element, elements) {
-            QString src = element.attribute("src");
-            src.remove(QLatin1String("../"));
-
-            if (urlString.contains(src)) {
-                element.setStyleProperty("display", "none");
-            }
-        }
-    }
-
-    // Apply domain-specific element hiding rules
-    QString elementHiding = manager->elementHidingRulesForDomain(url());
-    if (elementHiding.isEmpty()) {
-        return;
-    }
-
-    elementHiding.append(QLatin1String("\n</style>"));
-
-    QWebElement bodyElement = docElement.findFirst("body");
-    bodyElement.appendInside("<style type=\"text/css\">\n/* AdBlock for QupZilla */\n" + elementHiding);
-
-    // When hiding some elements, scroll position of page will change
-    // If user loaded anchor link in background tab (and didn't show it yet), fix the scroll position
-    if (view() && !view()->isVisible() && !url().fragment().isEmpty()) {
-        mainFrame()->scrollToAnchor(url().fragment());
-    }
-}
-
-QString WebPage::userAgentForUrl(const QUrl &url) const
-{
-    QString userAgent = mApp->uaManager()->userAgentForUrl(url);
-
-    if (userAgent.isEmpty()) {
-        userAgent = QWebPage::userAgentForUrl(url);
-#ifdef Q_OS_MAC
-#ifdef __i386__ || __x86_64__
-        userAgent.replace(QLatin1String("PPC Mac OS X"), QLatin1String("Intel Mac OS X"));
-#endif
-#endif
-    }
-
-    return userAgent;
 }
 
 bool WebPage::supportsExtension(Extension extension) const
@@ -696,181 +482,19 @@ bool WebPage::supportsExtension(Extension extension) const
 
 bool WebPage::extension(Extension extension, const ExtensionOption* option, ExtensionReturn* output)
 {
-    if (extension == ChooseMultipleFilesExtension) {
-        const QWebPage::ChooseMultipleFilesExtensionOption* exOption = static_cast<const QWebPage::ChooseMultipleFilesExtensionOption*>(option);
-        QWebPage::ChooseMultipleFilesExtensionReturn* exReturn = static_cast<QWebPage::ChooseMultipleFilesExtensionReturn*>(output);
-
-        if (!exOption || !exReturn) {
-            return QWebPage::extension(extension, option, output);
-        }
-
-        QString suggestedFileName;
-        if (!exOption->suggestedFileNames.isEmpty()) {
-            suggestedFileName = exOption->suggestedFileNames.at(0);
-        }
-
-        exReturn->fileNames = QzTools::getOpenFileNames("WebPage-UploadFiles", 0, tr("Select files to upload..."), suggestedFileName);
-        return true;
-    }
-
-    const ErrorPageExtensionOption* exOption = static_cast<const QWebPage::ErrorPageExtensionOption*>(option);
-    ErrorPageExtensionReturn* exReturn = static_cast<QWebPage::ErrorPageExtensionReturn*>(output);
-
-    if (!exOption || !exReturn) {
-        return QWebPage::extension(extension, option, output);
-    }
-
-    WebPage* erPage = qobject_cast<WebPage*>(exOption->frame->page());
-
-    if (!erPage) {
-        return QWebPage::extension(extension, option, output);
-    }
-
-    QString errorString;
-    if (exOption->domain == QWebPage::QtNetwork) {
-        switch (exOption->error) {
-        case QNetworkReply::ConnectionRefusedError:
-            errorString = tr("Server refused the connection");
-            break;
-        case QNetworkReply::RemoteHostClosedError:
-            errorString = tr("Server closed the connection");
-            break;
-        case QNetworkReply::HostNotFoundError:
-            errorString = tr("Server not found");
-            break;
-        case QNetworkReply::TimeoutError:
-            errorString = tr("Connection timed out");
-            break;
-        case QNetworkReply::SslHandshakeFailedError:
-            errorString = tr("Untrusted connection");
-            break;
-        case QNetworkReply::TemporaryNetworkFailureError:
-            errorString = tr("Temporary network failure");
-            break;
-        case QNetworkReply::ProxyConnectionRefusedError:
-            errorString = tr("Proxy connection refused");
-            break;
-        case QNetworkReply::ProxyNotFoundError:
-            errorString = tr("Proxy server not found");
-            break;
-        case QNetworkReply::ProxyTimeoutError:
-            errorString = tr("Proxy connection timed out");
-            break;
-        case QNetworkReply::ProxyAuthenticationRequiredError:
-            errorString = tr("Proxy authentication required");
-            break;
-        case QNetworkReply::ContentNotFoundError:
-            errorString = tr("Content not found");
-            break;
-        case QNetworkReply::UnknownNetworkError:
-            errorString = exOption->errorString.isEmpty() ? tr("Unknown network error") : exOption->errorString;
-            break;
-        case QNetworkReply::ProtocolUnknownError: {
-            // Sometimes exOption->url returns just "?" instead of actual url
-            const QUrl unknownProtocolUrl = (exOption->url.toString() == QLatin1String("?")) ? erPage->mainFrame()->requestedUrl() : exOption->url;
-            handleUnknownProtocol(unknownProtocolUrl);
-            return false;
-        }
-        case QNetworkReply::ContentAccessDenied:
-            if (exOption->errorString.startsWith(QLatin1String("AdBlock"))) {
-                if (exOption->frame != erPage->mainFrame()) { //Content in <iframe>
-                    QWebElement docElement = erPage->mainFrame()->documentElement();
-
-                    QWebElementCollection elements;
-                    elements.append(docElement.findAll("iframe"));
-
-                    foreach (QWebElement element, elements) {
-                        QString src = element.attribute("src");
-                        if (exOption->url.toString().contains(src)) {
-                            element.setStyleProperty("visibility", "hidden");
-                        }
-                    }
-
-                    return false;
-                }
-                else {   //The whole page is blocked
-                    QString rule = exOption->errorString;
-                    rule.remove(QLatin1String("AdBlock: "));
-
-                    QString errString = QzTools::readAllFileContents(":/html/adblockPage.html");
-                    errString.replace(QLatin1String("%TITLE%"), tr("AdBlocked Content"));
-                    errString.replace(QLatin1String("%IMAGE%"), QLatin1String("qrc:html/adblock_big.png"));
-                    errString.replace(QLatin1String("%FAVICON%"), QLatin1String("qrc:html/adblock_big.png"));
-
-                    errString.replace(QLatin1String("%RULE%"), tr("Blocked by <i>%1</i>").arg(rule));
-                    errString = QzTools::applyDirectionToPage(errString);
-
-                    exReturn->baseUrl = exOption->url;
-                    exReturn->content = QString(errString + "<span id=\"qupzilla-error-page\"></span>").toUtf8();
-
-                    if (PopupWebPage* popupPage = qobject_cast<PopupWebPage*>(exOption->frame->page())) {
-                        WebView* view = qobject_cast<WebView*>(popupPage->view());
-                        if (view) {
-                            // Closing blocked popup
-                            popupPage->mainWindow()->adBlockIcon()->popupBlocked(rule, exOption->url);
-                            view->closeView();
-                        }
-                    }
-                    return true;
-                }
-            }
-            errorString = tr("Content Access Denied");
-            break;
-        default:
-            if (exOption->errorString != QLatin1String("QupZilla:No Error")) {
-                qDebug() << "Content error: " << exOption->errorString << exOption->error;
-            }
-            return false;
-        }
-    }
-    else if (exOption->domain == QWebPage::Http) {
-        // 200 status code = OK
-        // It shouldn't be reported as an error, but sometimes it is ...
-        if (exOption->error == 200) {
-            return false;
-        }
-        errorString = tr("Error code %1").arg(exOption->error);
-    }
-    else if (exOption->domain == QWebPage::WebKit) {
-        return false;    // Downloads
-    }
-
-    const QUrl loadedUrl = exOption->url;
-    exReturn->baseUrl = loadedUrl;
-
-    QFile file(":/html/errorPage.html");
-    file.open(QFile::ReadOnly);
-    QString errString = file.readAll();
-    errString.replace(QLatin1String("%TITLE%"), tr("Failed loading page"));
-
-    errString.replace(QLatin1String("%IMAGE%"), QzTools::pixmapToByteArray(qIconProvider->standardIcon(QStyle::SP_MessageBoxWarning).pixmap(45, 45)));
-    errString.replace(QLatin1String("%FAVICON%"), QzTools::pixmapToByteArray(qIconProvider->standardIcon(QStyle::SP_MessageBoxWarning).pixmap(16, 16)));
-    errString.replace(QLatin1String("%BOX-BORDER%"), QLatin1String("qrc:html/box-border.png"));
-
-    QString heading2 = loadedUrl.host().isEmpty() ? tr("QupZilla can't load page.") : tr("QupZilla can't load page from %1.").arg(loadedUrl.host());
-
-    errString.replace(QLatin1String("%HEADING%"), errorString);
-    errString.replace(QLatin1String("%HEADING2%"), heading2);
-    errString.replace(QLatin1String("%LI-1%"), tr("Check the address for typing errors such as <b>ww.</b>example.com instead of <b>www.</b>example.com"));
-    errString.replace(QLatin1String("%LI-2%"), tr("If you are unable to load any pages, check your computer's network connection."));
-    errString.replace(QLatin1String("%LI-3%"), tr("If your computer or network is protected by a firewall or proxy, make sure that QupZilla is permitted to access the Web."));
-    errString.replace(QLatin1String("%TRY-AGAIN%"), tr("Try Again"));
-    errString = QzTools::applyDirectionToPage(errString);
-
-    exReturn->content = QString(errString + "<span id=\"qupzilla-error-page\"></span>").toUtf8();
     return true;
 }
 
-bool WebPage::javaScriptPrompt(QWebFrame* originatingFrame, const QString &msg, const QString &defaultValue, QString* result)
+bool WebPage::javaScriptPrompt(QWebEngineFrame* originatingFrame, const QString &msg, const QString &defaultValue, QString* result)
 {
 #ifndef NONBLOCK_JS_DIALOGS
-    return QWebPage::javaScriptPrompt(originatingFrame, msg, defaultValue, result);
+    return QWebEnginePage::javaScriptPrompt(originatingFrame, msg, defaultValue, result);
 #else
     if (m_runningLoop) {
         return false;
     }
 
-    WebView* webView = qobject_cast<WebView*>(originatingFrame->page()->view());
+    WebView* webView = qobject_cast<WebView*>(this->view());
     ResizableFrame* widget = new ResizableFrame(webView->overlayForJsAlert());
 
     widget->setObjectName("jsFrame");
@@ -879,7 +503,7 @@ bool WebPage::javaScriptPrompt(QWebFrame* originatingFrame, const QString &msg, 
     ui->message->setText(msg);
     ui->lineEdit->setText(defaultValue);
     ui->lineEdit->setFocus();
-    widget->resize(originatingFrame->page()->viewportSize());
+    widget->resize(this->viewportSize());
     widget->show();
 
     connect(webView, SIGNAL(viewportResized(QSize)), widget, SLOT(slotResize(QSize)));
@@ -905,16 +529,16 @@ bool WebPage::javaScriptPrompt(QWebFrame* originatingFrame, const QString &msg, 
 #endif
 }
 
-bool WebPage::javaScriptConfirm(QWebFrame* originatingFrame, const QString &msg)
+bool WebPage::javaScriptConfirm(QWebEngineFrame* originatingFrame, const QString &msg)
 {
 #ifndef NONBLOCK_JS_DIALOGS
-    return QWebPage::javaScriptConfirm(originatingFrame, msg);
+    return QWebEnginePage::javaScriptConfirm(originatingFrame, msg);
 #else
     if (m_runningLoop) {
         return false;
     }
 
-    WebView* webView = qobject_cast<WebView*>(originatingFrame->page()->view());
+    WebView* webView = qobject_cast<WebView*>(this->view());
     ResizableFrame* widget = new ResizableFrame(webView->overlayForJsAlert());
 
     widget->setObjectName("jsFrame");
@@ -922,7 +546,7 @@ bool WebPage::javaScriptConfirm(QWebFrame* originatingFrame, const QString &msg)
     ui->setupUi(widget);
     ui->message->setText(msg);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setFocus();
-    widget->resize(originatingFrame->page()->viewportSize());
+    widget->resize(this->viewportSize());
     widget->show();
 
     connect(webView, SIGNAL(viewportResized(QSize)), widget, SLOT(slotResize(QSize)));
@@ -945,7 +569,7 @@ bool WebPage::javaScriptConfirm(QWebFrame* originatingFrame, const QString &msg)
 #endif
 }
 
-void WebPage::javaScriptAlert(QWebFrame* originatingFrame, const QString &msg)
+void WebPage::javaScriptAlert(QWebEngineFrame* originatingFrame, const QString &msg)
 {
     Q_UNUSED(originatingFrame)
 
@@ -969,7 +593,7 @@ void WebPage::javaScriptAlert(QWebFrame* originatingFrame, const QString &msg)
     m_blockAlerts = dialog.isChecked();
 
 #else
-    WebView* webView = qobject_cast<WebView*>(originatingFrame->page()->view());
+    WebView* webView = qobject_cast<WebView*>(this->view());
     ResizableFrame* widget = new ResizableFrame(webView->overlayForJsAlert());
 
     widget->setObjectName("jsFrame");
@@ -977,7 +601,7 @@ void WebPage::javaScriptAlert(QWebFrame* originatingFrame, const QString &msg)
     ui->setupUi(widget);
     ui->message->setText(msg);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setFocus();
-    widget->resize(originatingFrame->page()->viewportSize());
+    widget->resize(this->viewportSize());
     widget->show();
 
     connect(webView, SIGNAL(viewportResized(QSize)), widget, SLOT(slotResize(QSize)));
@@ -1001,11 +625,9 @@ void WebPage::javaScriptAlert(QWebFrame* originatingFrame, const QString &msg)
 
 void WebPage::setJavaScriptEnabled(bool enabled)
 {
-    settings()->setAttribute(QWebSettings::JavascriptEnabled, enabled);
-    m_javaScriptEnabled = enabled;
 }
 
-QString WebPage::chooseFile(QWebFrame* originatingFrame, const QString &oldFile)
+QString WebPage::chooseFile(QWebEngineFrame* originatingFrame, const QString &oldFile)
 {
     QString suggFileName;
 
@@ -1016,7 +638,7 @@ QString WebPage::chooseFile(QWebFrame* originatingFrame, const QString &oldFile)
         suggFileName = oldFile;
     }
 
-    const QString fileName = QzTools::getOpenFileName("WebPage-ChooseFile", originatingFrame->page()->view(), tr("Choose file..."), suggFileName);
+    const QString fileName = QzTools::getOpenFileName("WebPage-ChooseFile", this->view(), tr("Choose file..."), suggFileName);
 
     if (!fileName.isEmpty()) {
         s_lastUploadLocation = fileName;
@@ -1052,9 +674,6 @@ void WebPage::disconnectObjects()
     s_livingPages.removeOne(this);
 
     disconnect(this);
-    m_networkProxy->disconnectObjects();
-
-    mApp->plugins()->emitWebPageDeleted(this);
 }
 
 WebPage::~WebPage()

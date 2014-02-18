@@ -39,7 +39,6 @@ BookmarksWidget::BookmarksWidget(WebView* view, QWidget* parent)
     , m_url(view->url())
     , m_view(view)
     , m_bookmarksModel(mApp->bookmarksModel())
-    , m_speedDial(mApp->plugins()->speedDial())
     , m_edited(false)
 {
     ui->setupUi(this);
@@ -55,12 +54,6 @@ BookmarksWidget::BookmarksWidget(WebView* view, QWidget* parent)
     setLayoutDirection(QApplication::layoutDirection());
 
     connect(ui->speeddialButton, SIGNAL(clicked()), this, SLOT(toggleSpeedDial()));
-
-    const SpeedDial::Page page = m_speedDial->pageForUrl(m_url);
-    ui->speeddialButton->setFlat(page.url.isEmpty() ? true : false);
-    ui->speeddialButton->setText(page.url.isEmpty() ?
-                                 tr("Add to Speed Dial") :
-                                 tr("Remove from Speed Dial"));
 
     loadBookmark();
 
@@ -104,17 +97,6 @@ void BookmarksWidget::loadBookmark()
 
 void BookmarksWidget::toggleSpeedDial()
 {
-    const SpeedDial::Page page = m_speedDial->pageForUrl(m_url);
-
-    if (page.url.isEmpty()) {
-        QString title = m_view->title();
-        m_speedDial->addPage(m_url, title);
-    }
-    else {
-        m_speedDial->removePage(page);
-    }
-
-    QTimer::singleShot(HIDE_DELAY, this, SLOT(close()));
 }
 
 void BookmarksWidget::bookmarkEdited()

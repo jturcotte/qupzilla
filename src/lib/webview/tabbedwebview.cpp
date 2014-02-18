@@ -35,7 +35,6 @@
 #include <QMovie>
 #include <QStatusBar>
 #include <QHostInfo>
-#include <QWebFrame>
 #include <QContextMenuEvent>
 
 TabbedWebView::TabbedWebView(QupZilla* mainClass, WebTab* webTab)
@@ -72,7 +71,7 @@ void TabbedWebView::setWebPage(WebPage* page)
 void TabbedWebView::inspectElement()
 {
     p_QupZilla->showWebInspector(false);
-    triggerPageAction(QWebPage::InspectElement);
+    triggerPageAction(QWebEnginePage::InspectElement);
 }
 
 WebTab* TabbedWebView::webTab() const
@@ -255,34 +254,12 @@ void TabbedWebView::loadInNewTab(const QNetworkRequest &req, QNetworkAccessManag
 
 void TabbedWebView::contextMenuEvent(QContextMenuEvent* event)
 {
-    m_menu->clear();
-
-    const QWebHitTestResult hitTest = page()->mainFrame()->hitTestContent(event->pos());
-
-    createContextMenu(m_menu, hitTest, event->pos());
-
-    if (!hitTest.isContentEditable() && !hitTest.isContentSelected()) {
-        m_menu->addAction(p_QupZilla->adBlockIcon()->menuAction());
-    }
-
-    m_menu->addSeparator();
-    m_menu->addAction(tr("Inspect Element"), this, SLOT(inspectElement()));
-
-    if (!m_menu->isEmpty()) {
-        // Prevent choosing first option with double rightclick
-        const QPoint pos = event->globalPos();
-        QPoint p(pos.x(), pos.y() + 1);
-
-        m_menu->popup(p);
-        return;
-    }
-
     WebView::contextMenuEvent(event);
 }
 
 void TabbedWebView::stop()
 {
-    triggerPageAction(QWebPage::Stop);
+    triggerPageAction(QWebEnginePage::Stop);
     slotLoadFinished();
 }
 

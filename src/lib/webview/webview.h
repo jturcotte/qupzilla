@@ -18,14 +18,14 @@
 #ifndef WEBVIEW_H
 #define WEBVIEW_H
 
-#include <QWebView>
-#include <QWebElement>
+#include <QIcon>
+#include <QWebEngineView>
 
 #include "qz_namespace.h"
 
 class WebPage;
 
-class QT_QUPZILLA_EXPORT WebView : public QWebView
+class QT_QUPZILLA_EXPORT WebView : public QWebEngineView
 {
     Q_OBJECT
 public:
@@ -36,7 +36,7 @@ public:
     QUrl url() const;
 
     WebPage* page() const;
-    void setPage(QWebPage* page);
+    void setPage(QWebEnginePage* page);
 
     void load(const QNetworkRequest &request,
               QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
@@ -49,7 +49,6 @@ public:
     void fakeLoadingProgress(int progress);
 
     bool hasRss() const;
-    QWebElement activeElement() const;
 
     void addNotification(QWidget* notif);
     bool eventFilter(QObject* obj, QEvent* event);
@@ -79,7 +78,7 @@ public slots:
 
     void editDelete();
     void selectAll();
-    void printPage(QWebFrame* frame = 0);
+    void printPage(QWebEngineFrame* frame = 0);
     void sendPageByMail();
     void savePageAs();
 
@@ -104,7 +103,7 @@ protected slots:
     void downloadUrlToDisk();
     void copyImageToClipboard();
     void openActionUrl();
-    void showSource(QWebFrame* frame = 0, const QString &selectedHtml = QString());
+    void showSource(QWebEngineFrame* frame = 0, const QString &selectedHtml = QString());
     void showSiteInfo();
     void searchSelectedText();
     void searchSelectedTextInBackgroundTab();
@@ -143,15 +142,12 @@ protected:
     void applyZoom();
     QUrl lastUrl();
 
-    bool isMediaElement(const QWebElement &element);
-    void checkForForm(QMenu* menu, const QWebElement &element);
-
-    void createContextMenu(QMenu* menu, const QWebHitTestResult &hitTest, const QPoint &pos);
+    void createContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest, const QPoint &pos);
     void createPageContextMenu(QMenu* menu, const QPoint &pos);
-    void createLinkContextMenu(QMenu* menu, const QWebHitTestResult &hitTest);
-    void createImageContextMenu(QMenu* menu, const QWebHitTestResult &hitTest);
-    void createSelectedTextContextMenu(QMenu* menu, const QWebHitTestResult &hitTest);
-    void createMediaContextMenu(QMenu* menu, const QWebHitTestResult &hitTest);
+    void createLinkContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest);
+    void createImageContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest);
+    void createSelectedTextContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest);
+    void createMediaContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest);
     void createSpellCheckContextMenu(QMenu* menu);
 
 private slots:
@@ -175,8 +171,7 @@ private:
     QUrl m_aboutToLoadUrl;
     QUrl m_lastUrl;
 
-    QWebElement m_clickedElement;
-    QWebFrame* m_clickedFrame;
+    QWebEngineFrame* m_clickedFrame;
     QUrl m_clickedUrl;
 
     WebPage* m_page;

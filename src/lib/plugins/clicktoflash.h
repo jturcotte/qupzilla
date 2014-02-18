@@ -39,7 +39,7 @@
 *
 * ============================================================ */
 
-#ifndef CLICKTOFLASH_H
+#ifdef QTWEBENGINE_DISABLED
 #define CLICKTOFLASH_H
 
 #include "qz_namespace.h"

@@ -30,7 +30,6 @@
 
 #include <QNetworkReply>
 #include <QMessageBox>
-#include <QWebElement>
 
 #if QT_VERSION >= 0x050000
 #include <QUrlQuery>
@@ -230,109 +229,8 @@ void SearchEnginesManager::addEngine(const Engine &engine)
     emit enginesChanged();
 }
 
-void SearchEnginesManager::addEngineFromForm(const QWebElement &element, WebView* view)
+void SearchEnginesManager::addEngineFromForm(const QWebEngineElement &element, WebView* view)
 {
-    QWebElement formElement = element.parent();
-
-    while (!formElement.isNull()) {
-        if (formElement.tagName().toLower() == QLatin1String("form")) {
-            break;
-        }
-
-        formElement = formElement.parent();
-    }
-
-    if (formElement.isNull()) {
-        return;
-    }
-
-    const QString method = formElement.hasAttribute("method") ? formElement.attribute("method").toUpper() : "GET";
-    bool isPost = method == QLatin1String("POST");
-
-    QUrl actionUrl = QUrl::fromEncoded(formElement.attribute("action").toUtf8());
-
-    if (actionUrl.isRelative()) {
-        actionUrl = view->url().resolved(actionUrl);
-    }
-
-    QUrl parameterUrl = actionUrl;
-
-    if (isPost) {
-        parameterUrl = QUrl("http://foo.bar");
-    }
-
-#if QT_VERSION >= 0x050000
-    QUrlQuery query(parameterUrl);
-    query.addQueryItem(element.attribute("name"), "%s");
-
-    QWebElementCollection allInputs = formElement.findAll("input");
-    foreach (QWebElement e, allInputs) {
-        if (element == e || !e.hasAttribute("name")) {
-            continue;
-        }
-
-        query.addQueryItem(e.attribute("name"), e.evaluateJavaScript("this.value").toString());
-    }
-
-    parameterUrl.setQuery(query);
-#else
-    QList<QPair<QByteArray, QByteArray> > queryItems;
-
-    QPair<QByteArray, QByteArray> item;
-    item.first = element.attribute("name").toUtf8();
-    item.second = "%s";
-    queryItems.append(item);
-
-    QWebElementCollection allInputs = formElement.findAll("input");
-    foreach (QWebElement e, allInputs) {
-        if (element == e || !e.hasAttribute("name")) {
-            continue;
-        }
-
-        QPair<QByteArray, QByteArray> item;
-        item.first = QUrl::toPercentEncoding(e.attribute("name").toUtf8());
-        item.second = QUrl::toPercentEncoding(e.evaluateJavaScript("this.value").toByteArray());
-
-        queryItems.append(item);
-    }
-    parameterUrl.setEncodedQueryItems(parameterUrl.encodedQueryItems() + queryItems);
-#endif
-
-    if (!isPost) {
-        actionUrl = parameterUrl;
-    }
-
-    SearchEngine engine;
-    engine.name = view->title();
-    engine.icon = view->icon();
-    engine.url = actionUrl.toEncoded();
-
-    if (isPost) {
-        QByteArray data = parameterUrl.toEncoded(QUrl::RemoveScheme);
-        engine.postData = data.contains('?') ? data.mid(data.lastIndexOf('?') + 1) : QByteArray();
-    }
-
-    EditSearchEngine dialog(SearchEnginesDialog::tr("Add Search Engine"), view);
-    dialog.setName(engine.name);
-    dialog.setIcon(engine.icon);
-    dialog.setUrl(engine.url);
-    dialog.setPostData(engine.postData);
-
-    if (dialog.exec() != QDialog::Accepted) {
-        return;
-    }
-
-    engine.name = dialog.name();
-    engine.icon = dialog.icon();
-    engine.url = dialog.url();
-    engine.shortcut = dialog.shortcut();
-    engine.postData = dialog.postData().toUtf8();
-
-    if (engine.name.isEmpty() || engine.url.isEmpty()) {
-        return;
-    }
-
-    addEngine(engine);
 }
 
 void SearchEnginesManager::addEngine(OpenSearchEngine* engine)

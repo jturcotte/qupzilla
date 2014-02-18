@@ -102,7 +102,6 @@ MainApplication::MainApplication(int &argc, char** argv)
     , m_speller(0)
 #endif
     , m_dbWriter(new DatabaseWriter(this))
-    , m_uaManager(new UserAgentManager)
     , m_isPrivateSession(false)
     , m_isPortable(false)
     , m_isClosing(false)
@@ -311,11 +310,6 @@ MainApplication::MainApplication(int &argc, char** argv)
 
     loadSettings();
 
-    m_plugins = new PluginProxy;
-
-    if (!noAddons) {
-        m_plugins->loadPlugins();
-    }
 
     if (!m_isPrivateSession) {
         Settings settings;
@@ -364,7 +358,6 @@ void MainApplication::postLaunch()
     connect(saver, SIGNAL(saveApp()), this, SLOT(saveStateSlot()));
 
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, m_activeProfil);
-    QWebHistoryInterface::setDefaultInterface(new WebHistoryInterface(this));
 
     connect(this, SIGNAL(messageReceived(QString)), this, SLOT(receiveAppMessage(QString)));
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(saveSettings()));
@@ -388,78 +381,14 @@ void MainApplication::loadSettings()
 
     loadTheme(activeTheme);
 
-    // Create global QWebSettings object
+    // Create global QWebEngineSettings object
     webSettings();
-
-    // Web browsing settings
-    settings.beginGroup("Web-Browser-Settings");
-
-    if (!m_isPrivateSession) {
-        m_websettings->enablePersistentStorage(m_activeProfil);
-        m_websettings->setAttribute(QWebSettings::LocalStorageEnabled, settings.value("HTML5StorageEnabled", true).toBool());
-    }
-
-    m_websettings->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
-    m_websettings->setAttribute(QWebSettings::PluginsEnabled, settings.value("allowFlash", true).toBool());
-    m_websettings->setAttribute(QWebSettings::JavascriptEnabled, settings.value("allowJavaScript", true).toBool());
-    m_websettings->setAttribute(QWebSettings::JavascriptCanOpenWindows, settings.value("allowJavaScriptOpenWindow", false).toBool());
-    m_websettings->setAttribute(QWebSettings::JavaEnabled, settings.value("allowJava", true).toBool());
-    m_websettings->setAttribute(QWebSettings::DnsPrefetchEnabled, settings.value("DNS-Prefetch", false).toBool());
-    m_websettings->setAttribute(QWebSettings::JavascriptCanAccessClipboard, settings.value("allowJavaScriptAccessClipboard", true).toBool());
-    m_websettings->setAttribute(QWebSettings::LinksIncludedInFocusChain, settings.value("IncludeLinkInFocusChain", false).toBool());
-    m_websettings->setAttribute(QWebSettings::ZoomTextOnly, settings.value("zoomTextOnly", false).toBool());
-    m_websettings->setAttribute(QWebSettings::PrintElementBackgrounds, settings.value("PrintElementBackground", true).toBool());
-    m_websettings->setAttribute(QWebSettings::XSSAuditingEnabled, settings.value("XSSAuditing", false).toBool());
-    m_websettings->setMaximumPagesInCache(settings.value("maximumCachedPages", 3).toInt());
-    m_websettings->setDefaultTextEncoding(settings.value("DefaultEncoding", m_websettings->defaultTextEncoding()).toString());
-    m_websettings->setAttribute(QWebSettings::SpatialNavigationEnabled, settings.value("SpatialNavigation", false).toBool());
-
-#if QTWEBKIT_FROM_2_3
-    m_websettings->setAttribute(QWebSettings::CaretBrowsingEnabled, settings.value("CaretBrowsing", false).toBool());
-    m_websettings->setAttribute(QWebSettings::ScrollAnimatorEnabled, settings.value("AnimateScrolling", true).toBool());
-#endif
-
-#ifdef USE_WEBGL
-    m_websettings->setAttribute(QWebSettings::WebGLEnabled, true);
-    m_websettings->setAttribute(QWebSettings::AcceleratedCompositingEnabled, true);
-#endif
-
-#if QTWEBKIT_FROM_2_2
-    m_websettings->setAttribute(QWebSettings::HyperlinkAuditingEnabled, true);
-    m_websettings->setAttribute(QWebSettings::JavascriptCanCloseWindows, settings.value("allowJavaScriptCloseWindow", false).toBool());
-#endif
-
-    setWheelScrollLines(settings.value("wheelScrollLines", wheelScrollLines()).toInt());
-    m_websettings->setUserStyleSheetUrl(userStyleSheet(settings.value("userStyleSheet", QString()).toString()));
-    settings.endGroup();
-
-    settings.beginGroup("Browser-Fonts");
-    m_websettings->setFontFamily(QWebSettings::StandardFont, settings.value("StandardFont", m_websettings->fontFamily(QWebSettings::StandardFont)).toString());
-    m_websettings->setFontFamily(QWebSettings::CursiveFont, settings.value("CursiveFont", m_websettings->fontFamily(QWebSettings::CursiveFont)).toString());
-    m_websettings->setFontFamily(QWebSettings::FantasyFont, settings.value("FantasyFont", m_websettings->fontFamily(QWebSettings::FantasyFont)).toString());
-    m_websettings->setFontFamily(QWebSettings::FixedFont, settings.value("FixedFont", m_websettings->fontFamily(QWebSettings::FixedFont)).toString());
-    m_websettings->setFontFamily(QWebSettings::SansSerifFont, settings.value("SansSerifFont", m_websettings->fontFamily(QWebSettings::SansSerifFont)).toString());
-    m_websettings->setFontFamily(QWebSettings::SerifFont, settings.value("SerifFont", m_websettings->fontFamily(QWebSettings::SerifFont)).toString());
-    m_websettings->setFontSize(QWebSettings::DefaultFontSize, settings.value("DefaultFontSize", m_websettings->fontSize(QWebSettings::DefaultFontSize)).toInt());
-    m_websettings->setFontSize(QWebSettings::DefaultFixedFontSize, settings.value("FixedFontSize", m_websettings->fontSize(QWebSettings::DefaultFixedFontSize)).toInt());
-    m_websettings->setFontSize(QWebSettings::MinimumFontSize, settings.value("MinimumFontSize", m_websettings->fontSize(QWebSettings::MinimumFontSize)).toInt());
-    m_websettings->setFontSize(QWebSettings::MinimumLogicalFontSize, settings.value("MinimumLogicalFontSize", m_websettings->fontSize(QWebSettings::MinimumLogicalFontSize)).toInt());
-    settings.endGroup();
-
-    m_websettings->setWebGraphic(QWebSettings::DefaultFrameIconGraphic, qIconProvider->emptyWebIcon().pixmap(16, 16));
-    m_websettings->setWebGraphic(QWebSettings::MissingImageGraphic, QPixmap());
-
-    if (m_isPrivateSession) {
-        m_websettings->setAttribute(QWebSettings::PrivateBrowsingEnabled, true);
-        history()->setSaving(false);
-    }
 
     if (m_downloadManager) {
         m_downloadManager->loadSettings();
     }
 
     qzSettings->loadSettings();
-    m_uaManager->loadSettings();
 }
 
 void MainApplication::reloadSettings()
@@ -870,7 +799,6 @@ void MainApplication::quitApplication()
     }
 
     m_isClosing = true;
-    m_networkmanager->disconnectObjects();
 
     if (m_mainWindows.count() > 0) {
         saveStateSlot();
@@ -896,7 +824,6 @@ void MainApplication::saveSettings()
     }
 
     m_isClosing = true;
-    m_networkmanager->disconnectObjects();
 
     Settings settings;
     settings.beginGroup("SessionRestore");
@@ -916,13 +843,10 @@ void MainApplication::saveSettings()
     }
 
     m_searchEnginesManager->saveSettings();
-    m_networkmanager->saveSettings();
-    m_plugins->shutdown();
     qIconProvider->saveIconsToDatabase();
     clearTempPath();
 
     qzSettings->saveSettings();
-    AdBlockManager::instance()->save();
     QFile::remove(currentProfilePath() + "WebpageIcons.db");
     Settings::syncSettings();
 }
@@ -937,9 +861,6 @@ BrowsingLibrary* MainApplication::browsingLibrary()
 
 CookieManager* MainApplication::cookieManager()
 {
-    if (!m_cookiemanager) {
-        m_cookiemanager = new CookieManager();
-    }
     return m_cookiemanager;
 }
 
@@ -951,36 +872,26 @@ History* MainApplication::history()
     return m_historymodel;
 }
 
-QWebSettings* MainApplication::webSettings()
+QWebEngineSettings* MainApplication::webSettings()
 {
-    if (!m_websettings) {
-        m_websettings = QWebSettings::globalSettings();
-    }
     return m_websettings;
 }
 
-NetworkManager* MainApplication::networkManager()
+QNetworkAccessManager* MainApplication::networkManager()
 {
     if (!m_networkmanager) {
-        m_networkmanager = new NetworkManager(this);
+        m_networkmanager = new QNetworkAccessManager(this);
     }
     return m_networkmanager;
 }
 
 CookieJar* MainApplication::cookieJar()
 {
-    if (!m_cookiejar) {
-        m_cookiejar = new CookieJar(getWindow());
-        m_cookiejar->restoreCookies();
-    }
     return m_cookiejar;
 }
 
 RSSManager* MainApplication::rssManager()
 {
-    if (!m_rssmanager) {
-        m_rssmanager = new RSSManager(getWindow());
-    }
     return m_rssmanager;
 }
 
@@ -1007,9 +918,6 @@ DownloadManager* MainApplication::downManager()
 
 AutoFill* MainApplication::autoFill()
 {
-    if (!m_autofill) {
-        m_autofill = new AutoFill(this);
-    }
     return m_autofill;
 }
 
@@ -1023,17 +931,7 @@ SearchEnginesManager* MainApplication::searchEnginesManager()
 
 QNetworkDiskCache* MainApplication::networkCache()
 {
-    if (!m_networkCache) {
-        Settings settings;
-        const QString basePath = settings.value("Web-Browser-Settings/CachePath",
-                                                QString("%1networkcache/").arg(m_activeProfil)).toString();
-
-        const QString cachePath = QString("%1/%2-Qt%3/").arg(basePath, qWebKitVersion(), qVersion());
-        m_networkCache = new QNetworkDiskCache(this);
-        m_networkCache->setCacheDirectory(cachePath);
-    }
-
-    return m_networkCache;
+    return 0;
 }
 
 DesktopNotificationsFactory* MainApplication::desktopNotifications()
@@ -1046,9 +944,6 @@ DesktopNotificationsFactory* MainApplication::desktopNotifications()
 
 HTML5PermissionsManager* MainApplication::html5permissions()
 {
-    if (!m_html5permissions) {
-        m_html5permissions = new HTML5PermissionsManager(this);
-    }
     return m_html5permissions;
 }
 
@@ -1082,10 +977,6 @@ void MainApplication::startPrivateBrowsing()
 
 void MainApplication::reloadUserStyleSheet()
 {
-    Settings settings;
-    settings.beginGroup("Web-Browser-Settings");
-    m_websettings->setUserStyleSheetUrl(userStyleSheet(settings.value("userStyleSheet", QString()).toString()));
-    settings.endGroup();
 }
 
 bool MainApplication::checkDefaultWebBrowser()
@@ -1150,8 +1041,6 @@ QUrl MainApplication::userStyleSheet(const QString &filePath) const
     userStyle += QString("::selection {background: %1; color: %2;} ").arg(highlightColor, highlightedTextColor);
 #endif
 
-    userStyle += AdBlockManager::instance()->elementHidingRules();
-
     QFile file(filePath);
     if (!filePath.isEmpty() && file.open(QFile::ReadOnly)) {
         QString fileData = QString::fromUtf8(file.readAll());
@@ -1175,10 +1064,6 @@ void MainApplication::aboutToCloseWindow(QupZilla* window)
     if (m_mainWindows.count() == 1) {
         if (m_browsingLibrary) {
             m_browsingLibrary->close();
-        }
-
-        if (m_cookiemanager) {
-            m_cookiemanager->close();
         }
     }
 
@@ -1217,9 +1102,6 @@ bool MainApplication::saveStateSlot()
     if (qupzilla_ && m_mainWindows.count() == 1) {
         qupzilla_->tabWidget()->savePinnedTabs();
     }
-
-    // Saving cookies
-    m_cookiejar->saveCookies();
 
     return true;
 }
@@ -1373,7 +1255,6 @@ QString MainApplication::tempPath() const
 
 MainApplication::~MainApplication()
 {
-    delete m_uaManager;
 #ifdef Q_OS_MAC
     delete m_macDockMenu;
 #endif
