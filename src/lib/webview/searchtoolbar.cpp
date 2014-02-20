@@ -24,6 +24,22 @@
 #include <QKeyEvent>
 #include <QShortcut>
 
+template<typename Arg, typename R, typename C>
+struct InvokeWrapper {
+    R *receiver;
+    void (C::*memberFun)(Arg);
+    void operator()(Arg result) {
+        (receiver->*memberFun)(result);
+    }
+};
+
+template<typename Arg, typename R, typename C>
+InvokeWrapper<Arg, R, C> invoke(R *receiver, void (C::*memberFun)(Arg))
+{
+    InvokeWrapper<Arg, R, C> wrapper = {receiver, memberFun};
+    return wrapper;
+}
+
 SearchToolBar::SearchToolBar(WebView* view, QWidget* parent)
     : AnimatedWidget(AnimatedWidget::Up, 300, parent)
     , ui(new Ui::SearchToolbar)
@@ -42,7 +58,6 @@ SearchToolBar::SearchToolBar(WebView* view, QWidget* parent)
     connect(ui->lineEdit, SIGNAL(returnPressed()), this, SLOT(findNext()));
     connect(ui->next, SIGNAL(clicked()), this, SLOT(findNext()));
     connect(ui->previous, SIGNAL(clicked()), this, SLOT(findPrevious()));
-    connect(ui->highligh, SIGNAL(clicked()), this, SLOT(highlightChanged()));
     connect(ui->caseSensitive, SIGNAL(clicked()), this, SLOT(caseSensitivityChanged()));
     startAnimation();
 
@@ -63,7 +78,6 @@ void SearchToolBar::setWebView(WebView* view)
 void SearchToolBar::showMinimalInPopupWindow()
 {
     // Show only essentials widget + set minimum width
-    ui->highligh->hide();
     ui->caseSensitive->hide();
     ui->results->hide();
     ui->horizontalLayout->setSpacing(2);
@@ -110,16 +124,6 @@ void SearchToolBar::updateFindFlags()
     }
 }
 
-void SearchToolBar::highlightChanged()
-{
-    if (ui->highligh->isChecked()) {
-        m_view->findText(ui->lineEdit->text(), m_findFlags);
-    }
-    else {
-        m_view->findText(QString());
-    }
-}
-
 void SearchToolBar::caseSensitivityChanged()
 {
     updateFindFlags();
@@ -129,24 +133,13 @@ void SearchToolBar::caseSensitivityChanged()
 
 void SearchToolBar::searchText(const QString &text)
 {
-    // Clear highlighting on page
-    m_view->findText(QString());
+    m_view->findText(text, m_findFlags, invoke(this, &SearchToolBar::handleSearchResult));
+}
 
-    // FIXME
-    bool found = true;
-    m_view->findText(text, m_findFlags);
-
-    if (text.isEmpty()) {
+void SearchToolBar::handleSearchResult(bool found)
+{
+    if (ui->lineEdit->text().isEmpty()) {
         found = true;
-    }
-
-    if (ui->highligh->isChecked()) {
-        m_findFlags = 0;
-        updateFindFlags();
-        m_view->findText(text, m_findFlags);
-    }
-    else {
-        m_view->findText(QString());
     }
 
     if (!found) {

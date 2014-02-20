@@ -51,7 +51,6 @@ signals:
 public slots:
     void searchText(const QString &text);
     void updateFindFlags();
-    void highlightChanged();
     void caseSensitivityChanged();
 
     void findNext();
@@ -60,6 +59,7 @@ public slots:
     void hide();
 
 private:
+    void handleSearchResult(bool found);
     Ui::SearchToolbar* ui;
     WebView* m_view;
 
