@@ -71,8 +71,6 @@ NetworkManager::NetworkManager(QObject* parent)
     , m_adblockManager(0)
     , m_ignoreAllWarnings(false)
 {
-    connect(this, SIGNAL(authenticationRequired(QNetworkReply*,QAuthenticator*)), this, SLOT(authentication(QNetworkReply*,QAuthenticator*)));
-    connect(this, SIGNAL(proxyAuthenticationRequired(QNetworkProxy,QAuthenticator*)), this, SLOT(proxyAuthentication(QNetworkProxy,QAuthenticator*)));
     connect(this, SIGNAL(sslErrors(QNetworkReply*,QList<QSslError>)), this, SLOT(sslError(QNetworkReply*,QList<QSslError>)));
     connect(this, SIGNAL(finished(QNetworkReply*)), this, SLOT(setSSLConfiguration(QNetworkReply*)));
 
@@ -271,94 +269,6 @@ void NetworkManager::sslError(QNetworkReply* reply, QList<QSslError> errors)
     reply->ignoreSslErrors(errors);
 }
 
-void NetworkManager::authentication(QNetworkReply* reply, QAuthenticator* auth)
-{
-    QDialog* dialog = new QDialog();
-    dialog->setWindowTitle(tr("Authorisation required"));
-
-    QFormLayout* formLa = new QFormLayout(dialog);
-
-    QLabel* label = new QLabel(dialog);
-    QLabel* userLab = new QLabel(dialog);
-    QLabel* passLab = new QLabel(dialog);
-    userLab->setText(tr("Username: "));
-    passLab->setText(tr("Password: "));
-
-    QLineEdit* user = new QLineEdit(dialog);
-    QLineEdit* pass = new QLineEdit(dialog);
-    QCheckBox* save = new QCheckBox(dialog);
-    save->setText(tr("Save username and password on this site"));
-    pass->setEchoMode(QLineEdit::Password);
-
-    QDialogButtonBox* box = new QDialogButtonBox(dialog);
-    box->addButton(QDialogButtonBox::Ok);
-    box->addButton(QDialogButtonBox::Cancel);
-    connect(box, SIGNAL(rejected()), dialog, SLOT(reject()));
-    connect(box, SIGNAL(accepted()), dialog, SLOT(accept()));
-
-    label->setText(tr("A username and password are being requested by %1. "
-                      "The site says: \"%2\"").arg(reply->url().host(), QzTools::escape(auth->realm())));
-    formLa->addRow(label);
-
-    formLa->addRow(userLab, user);
-    formLa->addRow(passLab, pass);
-    formLa->addRow(save);
-
-    formLa->addWidget(box);
-    bool shouldUpdateEntry = false;
-
-    AutoFill* fill = mApp->autoFill();
-    QString storedUser;
-    QString storedPassword;
-    if (fill->isStored(reply->url())) {
-        const QVector<PasswordEntry> &data = fill->getFormData(reply->url());
-
-        if (!data.isEmpty()) {
-            save->setChecked(true);
-            shouldUpdateEntry = true;
-            storedUser = data.first().username;
-            storedPassword = data.first().password;
-            user->setText(storedUser);
-            pass->setText(storedPassword);
-        }
-    }
-
-    // Try to set the originating WebTab as a current tab
-    QWebFrame* frame = qobject_cast<QWebFrame*>(reply->request().originatingObject());
-    if (frame) {
-        WebPage* page = qobject_cast<WebPage*>(frame->page());
-        if (page) {
-            TabbedWebView* view = qobject_cast<TabbedWebView*>(page->view());
-            if (view) {
-                view->setAsCurrentTab();
-            }
-        }
-    }
-
-    // Do not save when private browsing is enabled
-    if (mApp->isPrivateSession()) {
-        save->setVisible(false);
-    }
-
-    if (dialog->exec() != QDialog::Accepted) {
-        return;
-    }
-
-    auth->setUser(user->text());
-    auth->setPassword(pass->text());
-
-    if (save->isChecked()) {
-        if (shouldUpdateEntry) {
-            if (storedUser != user->text() || storedPassword != pass->text()) {
-                fill->updateEntry(reply->url(), user->text(), pass->text());
-            }
-        }
-        else {
-            fill->addEntry(reply->url(), user->text(), pass->text());
-        }
-    }
-}
-
 void NetworkManager::ftpAuthentication(const QUrl &url, QAuthenticator* auth)
 {
     QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
@@ -443,63 +353,6 @@ void NetworkManager::ftpAuthentication(const QUrl &url, QAuthenticator* auth)
         auth->setUser(QString());
         auth->setPassword(QString());
     }
-}
-
-void NetworkManager::proxyAuthentication(const QNetworkProxy &proxy, QAuthenticator* auth)
-{
-    QString userName;
-    QString password;
-    QVector<PasswordEntry> psws = mApp->autoFill()->getFormData(QUrl(proxy.hostName()));
-
-    if (psws.isEmpty()) {
-        QDialog* dialog = new QDialog();
-        dialog->setWindowTitle(tr("Proxy authorisation required"));
-
-        QFormLayout* formLa = new QFormLayout(dialog);
-
-        QLabel* label = new QLabel(dialog);
-        QLabel* userLab = new QLabel(dialog);
-        QLabel* passLab = new QLabel(dialog);
-        userLab->setText(tr("Username: "));
-        passLab->setText(tr("Password: "));
-
-        QLineEdit* user = new QLineEdit(dialog);
-        QLineEdit* pass = new QLineEdit(dialog);
-        pass->setEchoMode(QLineEdit::Password);
-
-        QDialogButtonBox* box = new QDialogButtonBox(dialog);
-        box->addButton(QDialogButtonBox::Ok);
-        box->addButton(QDialogButtonBox::Cancel);
-        connect(box, SIGNAL(rejected()), dialog, SLOT(reject()));
-        connect(box, SIGNAL(accepted()), dialog, SLOT(accept()));
-
-        QCheckBox* rememberCheck = new QCheckBox(tr("Remember username and password for this proxy."), dialog);
-
-        label->setText(tr("A username and password are being requested by proxy %1. ").arg(proxy.hostName()));
-        formLa->addRow(label);
-        formLa->addRow(userLab, user);
-        formLa->addRow(passLab, pass);
-        formLa->addRow(rememberCheck);
-        formLa->addWidget(box);
-
-        if (dialog->exec() != QDialog::Accepted) {
-            return;
-        }
-
-        if (rememberCheck->isChecked()) {
-            mApp->autoFill()->addEntry(QUrl(proxy.hostName()), user->text(), pass->text());
-        }
-
-        userName = user->text();
-        password = pass->text();
-    }
-    else {
-        userName = psws.at(0).username;
-        password = psws.at(0).password;
-    }
-
-    auth->setUser(userName);
-    auth->setPassword(password);
 }
 
 QNetworkReply* NetworkManager::createRequest(QNetworkAccessManager::Operation op, const QNetworkRequest &request, QIODevice* outgoingData)

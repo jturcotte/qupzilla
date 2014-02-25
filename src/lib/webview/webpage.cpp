@@ -49,7 +49,11 @@
 #include <QPushButton>
 #endif
 
+#include <QAuthenticator>
 #include <QDir>
+#include <QFormLayout>
+#include <QLabel>
+#include <QLineEdit>
 #include <QMouseEvent>
 #include <QWebEngineHistory>
 #include <QTimer>
@@ -82,6 +86,8 @@ WebPage::WebPage(QObject* parent)
     connect(this, SIGNAL(printRequested(QWebEngineFrame*)), this, SLOT(printFrame(QWebEngineFrame*)));
     connect(this, SIGNAL(downloadRequested(QNetworkRequest)), this, SLOT(downloadRequested(QNetworkRequest)));
     connect(this, SIGNAL(windowCloseRequested()), this, SLOT(windowCloseRequested()));
+    connect(this, SIGNAL(authenticationRequired(const QUrl&, QAuthenticator*)), this, SLOT(authentication(const QUrl&, QAuthenticator*)));
+    connect(this, SIGNAL(proxyAuthenticationRequired(const QUrl&, QAuthenticator*, const QString&)), this, SLOT(proxyAuthentication(const QUrl&, QAuthenticator*, const QString&)));
 
 #if QTWEBKIT_FROM_2_2
     connect(this, SIGNAL(featurePermissionRequested(QWebEngineFrame*,QWebEnginePage::Feature)),
@@ -337,6 +343,90 @@ void WebPage::windowCloseRequested()
     }
 
     webView->closeView();
+}
+
+void WebPage::authentication(const QUrl &requestUrl, QAuthenticator *auth)
+{
+    QDialog* dialog = new QDialog();
+    dialog->setWindowTitle(tr("Authorisation required"));
+
+    QFormLayout* formLa = new QFormLayout(dialog);
+
+    QLabel* label = new QLabel(dialog);
+    QLabel* userLab = new QLabel(dialog);
+    QLabel* passLab = new QLabel(dialog);
+    userLab->setText(tr("Username: "));
+    passLab->setText(tr("Password: "));
+
+    QLineEdit* user = new QLineEdit(dialog);
+    QLineEdit* pass = new QLineEdit(dialog);
+    pass->setEchoMode(QLineEdit::Password);
+
+    QDialogButtonBox* box = new QDialogButtonBox(dialog);
+    box->addButton(QDialogButtonBox::Ok);
+    box->addButton(QDialogButtonBox::Cancel);
+    connect(box, SIGNAL(rejected()), dialog, SLOT(reject()));
+    connect(box, SIGNAL(accepted()), dialog, SLOT(accept()));
+
+    label->setText(tr("A username and password are being requested by %1. "
+                      "The site says: \"%2\"").arg(requestUrl.host(), QzTools::escape(auth->realm())));
+    formLa->addRow(label);
+
+    formLa->addRow(userLab, user);
+    formLa->addRow(passLab, pass);
+
+    formLa->addWidget(box);
+    bool shouldUpdateEntry = false;
+
+    // Try to set the originating WebTab as a current tab
+    TabbedWebView* view = qobject_cast<TabbedWebView*>(this->view());
+    if (view) {
+        view->setAsCurrentTab();
+    }
+
+    if (dialog->exec() != QDialog::Accepted) {
+        return;
+    }
+
+    auth->setUser(user->text());
+    auth->setPassword(pass->text());
+}
+
+void WebPage::proxyAuthentication(const QUrl &requestUrl, QAuthenticator *auth, const QString &proxyHost)
+{
+    QDialog* dialog = new QDialog();
+    dialog->setWindowTitle(tr("Proxy authorisation required"));
+
+    QFormLayout* formLa = new QFormLayout(dialog);
+
+    QLabel* label = new QLabel(dialog);
+    QLabel* userLab = new QLabel(dialog);
+    QLabel* passLab = new QLabel(dialog);
+    userLab->setText(tr("Username: "));
+    passLab->setText(tr("Password: "));
+
+    QLineEdit* user = new QLineEdit(dialog);
+    QLineEdit* pass = new QLineEdit(dialog);
+    pass->setEchoMode(QLineEdit::Password);
+
+    QDialogButtonBox* box = new QDialogButtonBox(dialog);
+    box->addButton(QDialogButtonBox::Ok);
+    box->addButton(QDialogButtonBox::Cancel);
+    connect(box, SIGNAL(rejected()), dialog, SLOT(reject()));
+    connect(box, SIGNAL(accepted()), dialog, SLOT(accept()));
+
+    label->setText(tr("A username and password are being requested by proxy %1. ").arg(proxyHost));
+    formLa->addRow(label);
+    formLa->addRow(userLab, user);
+    formLa->addRow(passLab, pass);
+    formLa->addWidget(box);
+
+    if (dialog->exec() != QDialog::Accepted) {
+        return;
+    }
+
+    auth->setUser(user->text());
+    auth->setPassword(pass->text());
 }
 
 void WebPage::dbQuotaExceeded(QWebEngineFrame* frame)
