@@ -25,6 +25,7 @@
 #include "qz_namespace.h"
 #include "passwordmanager.h"
 
+class QWebEngineFrame;
 class QWebEngineSecurityOrigin;
 class QEventLoop;
 
@@ -52,14 +53,13 @@ public:
     ~WebPage();
 
     void setWebView(TabbedWebView* view);
-    void populateNetworkRequest(QNetworkRequest &request);
 
     void setSSLCertificate(const QSslCertificate &cert);
     QSslCertificate sslCertificate();
 
-    bool javaScriptPrompt(QWebEngineFrame* originatingFrame, const QString &msg, const QString &defaultValue, QString* result);
-    bool javaScriptConfirm(QWebEngineFrame* originatingFrame, const QString &msg);
-    void javaScriptAlert(QWebEngineFrame* originatingFrame, const QString &msg);
+    bool javaScriptPrompt(const QUrl &securityOrigin, const QString &msg, const QString &defaultValue, QString* result);
+    bool javaScriptConfirm(const QUrl &securityOrigin, const QString &msg);
+    void javaScriptAlert(const QUrl &securityOrigin, const QString &msg);
 
     void setJavaScriptEnabled(bool enabled);
 
@@ -71,8 +71,6 @@ public:
 
     void addRejectedCerts(const QList<QSslCertificate> &certs);
     bool containsRejectedCerts(const QList<QSslCertificate> &certs);
-
-    QWebEngineElement activeElement() const;
 
     static bool isPointerSafeToUse(WebPage* page);
     void disconnectObjects();
@@ -102,7 +100,6 @@ private slots:
 
 #ifdef USE_QTWEBKIT_2_2
     void appCacheQuotaExceeded(QWebEngineSecurityOrigin* origin, quint64 originalQuota);
-    void featurePermissionRequested(QWebEngineFrame* frame, const QWebEnginePage::Feature &feature);
 #endif
 
 protected:
@@ -111,10 +108,7 @@ protected:
     QObject* createPlugin(const QString &classid, const QUrl &url, const QStringList &paramNames, const QStringList &paramValues);
 
 private:
-    bool supportsExtension(Extension extension) const;
-    bool extension(Extension extension, const ExtensionOption* option, ExtensionReturn* output = 0);
-    bool acceptNavigationRequest(QWebEngineFrame* frame, const QNetworkRequest &request, NavigationType type);
-    QString chooseFile(QWebEngineFrame* originatingFrame, const QString &oldFile);
+    QStringList chooseFiles(FileSelectionMode mode, const QStringList &oldFiles, const QStringList &acceptedMimeTypes);
 
     void handleUnknownProtocol(const QUrl &url);
     void desktopServicesOpen(const QUrl &url);
@@ -133,7 +127,6 @@ private:
     QSslCertificate m_sslCert;
     QVector<QSslCertificate> m_rejectedSslCerts;
 
-    QWebEnginePage::NavigationType m_lastRequestType;
     QUrl m_lastRequestUrl;
 
     int m_loadProgress;

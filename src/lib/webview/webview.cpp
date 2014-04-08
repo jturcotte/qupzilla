@@ -68,7 +68,6 @@ WebView::WebView(QWidget* parent)
     connect(this, SIGNAL(loadStarted()), this, SLOT(slotLoadStarted()));
     connect(this, SIGNAL(loadProgress(int)), this, SLOT(slotLoadProgress(int)));
     connect(this, SIGNAL(loadFinished(bool)), this, SLOT(slotLoadFinished()));
-    connect(this, SIGNAL(iconChanged()), this, SLOT(slotIconChanged()));
     connect(this, SIGNAL(urlChanged(QUrl)), this, SLOT(slotUrlChanged(QUrl)));
 
     // Zoom levels same as in firefox
@@ -318,7 +317,6 @@ void WebView::back()
         history->back();
 
         emit urlChanged(url());
-        emit iconChanged();
     }
 }
 
@@ -330,7 +328,6 @@ void WebView::forward()
         history->forward();
 
         emit urlChanged(url());
-        emit iconChanged();
     }
 }
 
@@ -399,16 +396,6 @@ void WebView::emitChangedUrl()
 
 void WebView::checkRss()
 {
-}
-
-void WebView::slotIconChanged()
-{
-    if (!loadingError()) {
-        m_siteIcon = icon();
-        m_siteIconUrl = url();
-
-        qIconProvider->saveIcon(this);
-    }
 }
 
 void WebView::slotUrlChanged(const QUrl &url)
@@ -498,11 +485,6 @@ void WebView::downloadUrlToDisk()
         DownloadManager* dManager = mApp->downManager();
         dManager->download(request, info);
     }
-}
-
-void WebView::copyImageToClipboard()
-{
-    triggerPageAction(QWebEnginePage::CopyImageToClipboard);
 }
 
 void WebView::openActionUrl()
@@ -682,49 +664,6 @@ void WebView::createSearchEngine()
 {
 }
 
-void WebView::createContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest, const QPoint &pos)
-{
-}
-
-void WebView::createPageContextMenu(QMenu* menu, const QPoint &pos)
-{
-}
-
-void WebView::createLinkContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest)
-{
-}
-
-void WebView::createImageContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest)
-{
-}
-
-void WebView::createSelectedTextContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest)
-{
-}
-
-void WebView::createMediaContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest)
-{
-}
-
-void WebView::createSpellCheckContextMenu(QMenu* menu)
-{
-    Q_UNUSED(menu)
-#ifdef USE_HUNSPELL
-    menu->addSeparator();
-
-    QAction* act = menu->addAction(tr("Check &Spelling"), mApp->speller(), SLOT(toggleEnableSpellChecking()));
-    act->setCheckable(true);
-    act->setChecked(mApp->speller()->isEnabled());
-
-    if (mApp->speller()->isEnabled()) {
-        QMenu* men = menu->addMenu(tr("Languages"));
-        connect(men, SIGNAL(aboutToShow()), mApp->speller(), SLOT(populateLanguagesMenu()));
-    }
-
-    menu->addSeparator();
-#endif
-}
-
 void WebView::pauseMedia()
 {
 }
@@ -834,74 +773,6 @@ void WebView::keyPressEvent(QKeyEvent* event)
         }
         break;
 
-    case Qt::Key_Up:
-        if (event->modifiers() & Qt::ShiftModifier) {
-            triggerPageAction(QWebEnginePage::SelectPreviousLine);
-            event->accept();
-            return;
-        }
-        break;
-
-    case Qt::Key_Down:
-        if (event->modifiers() & Qt::ShiftModifier) {
-            triggerPageAction(QWebEnginePage::SelectNextLine);
-            event->accept();
-            return;
-        }
-        break;
-
-    case Qt::Key_Left:
-        if (event->modifiers() & Qt::ShiftModifier) {
-            if (event->modifiers() == Qt::ShiftModifier) {
-                triggerPageAction(QWebEnginePage::SelectPreviousChar);
-            }
-            else if (event->modifiers() == (Qt::ShiftModifier | Qt::ControlModifier)) {
-                triggerPageAction(QWebEnginePage::SelectPreviousWord);
-            }
-            event->accept();
-            return;
-        }
-        break;
-
-    case Qt::Key_Right:
-        if (event->modifiers() & Qt::ShiftModifier) {
-            if (event->modifiers() == Qt::ShiftModifier) {
-                triggerPageAction(QWebEnginePage::SelectNextChar);
-            }
-            else if (event->modifiers() == (Qt::ShiftModifier | Qt::ControlModifier)) {
-                triggerPageAction(QWebEnginePage::SelectNextWord);
-            }
-            event->accept();
-            return;
-        }
-        break;
-
-    case Qt::Key_Home:
-        if (event->modifiers() & Qt::ShiftModifier) {
-            if (event->modifiers() == Qt::ShiftModifier) {
-                triggerPageAction(QWebEnginePage::SelectStartOfLine);
-            }
-            else if (event->modifiers() == (Qt::ShiftModifier | Qt::ControlModifier)) {
-                triggerPageAction(QWebEnginePage::SelectStartOfDocument);
-            }
-            event->accept();
-            return;
-        }
-        break;
-
-    case Qt::Key_End:
-        if (event->modifiers() & Qt::ShiftModifier) {
-            if (event->modifiers() == Qt::ShiftModifier) {
-                triggerPageAction(QWebEnginePage::SelectEndOfLine);
-            }
-            else if (event->modifiers() == (Qt::ShiftModifier | Qt::ControlModifier)) {
-                triggerPageAction(QWebEnginePage::SelectEndOfDocument);
-            }
-            event->accept();
-            return;
-        }
-        break;
-
     case Qt::Key_Insert:
         if (event->modifiers() == Qt::ControlModifier) {
             triggerPageAction(QWebEnginePage::Copy);
@@ -930,7 +801,7 @@ void WebView::keyReleaseEvent(QKeyEvent* event)
 void WebView::resizeEvent(QResizeEvent* event)
 {
     QWebEngineView::resizeEvent(event);
-    emit viewportResized(page()->viewportSize());
+    emit viewportResized(size());
 }
 
 void WebView::setZoom(int zoom)

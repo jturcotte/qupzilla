@@ -41,7 +41,6 @@ signals:
 
 public slots:
     void closeView();
-    void inspectElement();
 
 private:
     void contextMenuEvent(QContextMenuEvent* event);

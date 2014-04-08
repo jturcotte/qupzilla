@@ -23,6 +23,7 @@
 
 #include "qz_namespace.h"
 
+class QWebEngineFrame;
 class WebPage;
 
 class QT_QUPZILLA_EXPORT WebView : public QWebEngineView
@@ -93,7 +94,6 @@ protected slots:
     void slotLoadStarted();
     void slotLoadProgress(int progress);
     void slotLoadFinished();
-    void slotIconChanged();
     void slotUrlChanged(const QUrl &url);
 
     // Context menu slots
@@ -101,7 +101,6 @@ protected slots:
     void sendLinkByMail();
     void copyLinkToClipboard();
     void downloadUrlToDisk();
-    void copyImageToClipboard();
     void openActionUrl();
     void showSource(QWebEngineFrame* frame = 0, const QString &selectedHtml = QString());
     void showSiteInfo();
@@ -141,14 +140,6 @@ protected:
     void setZoom(int zoom);
     void applyZoom();
     QUrl lastUrl();
-
-    void createContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest, const QPoint &pos);
-    void createPageContextMenu(QMenu* menu, const QPoint &pos);
-    void createLinkContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest);
-    void createImageContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest);
-    void createSelectedTextContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest);
-    void createMediaContextMenu(QMenu* menu, const QWebEngineHitTestResult &hitTest);
-    void createSpellCheckContextMenu(QMenu* menu);
 
 private slots:
     void pauseMedia();

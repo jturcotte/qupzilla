@@ -21,7 +21,6 @@
 #include "mainapplication.h"
 
 #include <QWebEngineHistory>
-#include <QWebEngineSettings>
 
 ClosedTabsManager::ClosedTabsManager()
 {

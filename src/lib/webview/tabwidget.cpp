@@ -393,13 +393,6 @@ int TabWidget::addView(QNetworkRequest req, const QString &title, const Qz::NewT
 
     if (openFlags & Qz::NT_NotSelectedTab) {
         WebTab* currentWebTab = weTab();
-        // Workarounding invalid QWebEnginePage::viewportSize() until QWebEngineView is shown
-        // Fixes invalid scrolling to anchor(#) links
-        if (currentWebTab && currentWebTab->view()) {
-            TabbedWebView* currentView = currentWebTab->view();
-            webView->resize(currentView->size());
-            webView->page()->setViewportSize(currentView->page()->viewportSize());
-        }
     }
 
     setUpdatesEnabled(true);

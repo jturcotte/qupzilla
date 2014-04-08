@@ -50,9 +50,7 @@ TabbedWebView::TabbedWebView(QupZilla* mainClass, WebTab* webTab)
 
     connect(this, SIGNAL(urlChanged(QUrl)), this, SLOT(urlChanged(QUrl)));
     connect(this, SIGNAL(titleChanged(QString)), this, SLOT(titleChanged()));
-    connect(this, SIGNAL(iconChanged()), this, SLOT(showIcon()));
 
-    connect(this, SIGNAL(statusBarMessage(QString)), p_QupZilla->statusBar(), SLOT(showMessage(QString)));
     connect(p_QupZilla, SIGNAL(setWebViewMouseTracking(bool)), this, SLOT(trackMouse(bool)));
 
     // Tracking mouse also on tabs created in fullscreen
@@ -64,14 +62,6 @@ void TabbedWebView::setWebPage(WebPage* page)
     page->setWebView(this);
     page->setParent(this);
     setPage(page);
-
-    connect(page, SIGNAL(linkHovered(QString,QString,QString)), this, SLOT(linkHovered(QString,QString,QString)));
-}
-
-void TabbedWebView::inspectElement()
-{
-    p_QupZilla->showWebInspector(false);
-    triggerPageAction(QWebEnginePage::InspectElement);
 }
 
 WebTab* TabbedWebView::webTab() const

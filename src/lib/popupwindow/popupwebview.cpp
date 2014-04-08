@@ -81,11 +81,6 @@ void PopupWebView::closeView()
     parentWidget()->close();
 }
 
-void PopupWebView::inspectElement()
-{
-    triggerPageAction(QWebEnginePage::InspectElement);
-}
-
 void PopupWebView::contextMenuEvent(QContextMenuEvent* event)
 {
     WebView::contextMenuEvent(event);

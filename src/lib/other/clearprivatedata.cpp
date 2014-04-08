@@ -30,7 +30,6 @@
 
 #include <QNetworkCookie>
 #include <QMessageBox>
-#include <QWebEngineSettings>
 #include <QNetworkDiskCache>
 #include <QDateTime>
 #include <QSqlQuery>

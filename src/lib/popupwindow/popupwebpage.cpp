@@ -43,9 +43,6 @@ PopupWebPage::PopupWebPage(QWebEnginePage::WebWindowType type, QupZilla* mainCla
     , m_progress(0)
 {
     connect(this, SIGNAL(geometryChangeRequested(QRect)), this, SLOT(slotGeometryChangeRequested(QRect)));
-    connect(this, SIGNAL(menuBarVisibilityChangeRequested(bool)), this, SLOT(slotMenuBarVisibilityChangeRequested(bool)));
-    connect(this, SIGNAL(toolBarVisibilityChangeRequested(bool)), this, SLOT(slotToolBarVisibilityChangeRequested(bool)));
-    connect(this, SIGNAL(statusBarVisibilityChangeRequested(bool)), this, SLOT(slotStatusBarVisibilityChangeRequested(bool)));
 
     connect(this, SIGNAL(loadStarted()), this, SLOT(slotLoadStarted()));
     connect(this, SIGNAL(loadProgress(int)), this, SLOT(slotLoadProgress(int)));

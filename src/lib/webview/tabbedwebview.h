@@ -80,8 +80,6 @@ private slots:
     void linkHovered(const QString &link, const QString &title, const QString &content);
     void setIp(const QHostInfo &info);
 
-    void inspectElement();
-
 private:
     void contextMenuEvent(QContextMenuEvent* event);
     void mouseMoveEvent(QMouseEvent* event);

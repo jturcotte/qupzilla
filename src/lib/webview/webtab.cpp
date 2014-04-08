@@ -113,7 +113,6 @@ WebTab::WebTab(QupZilla* mainClass, LocationBar* locationBar)
     setLayout(m_layout);
 
     connect(m_view, SIGNAL(showNotification(QWidget*)), this, SLOT(showNotification(QWidget*)));
-    connect(m_view, SIGNAL(iconChanged()), m_locationBar.data(), SLOT(siteIconChanged()));
     connect(m_view, SIGNAL(loadStarted()), m_locationBar.data(), SLOT(clearIcon()));
     connect(m_view, SIGNAL(loadFinished(bool)), m_locationBar.data(), SLOT(siteIconChanged()));
     connect(m_view, SIGNAL(urlChanged(QUrl)), m_locationBar.data(), SLOT(showUrl(QUrl)));
