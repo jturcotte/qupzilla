@@ -180,7 +180,6 @@ int main(int argc, char* argv[])
 #endif
 
     MainApplication app(argc, argv);
-    QWebEngineWidgets::initialize();
 
     if (app.isClosing()) {
 //        Not showing any output, otherwise XFCE shows "Failed to execute default browser. I/O error" error
