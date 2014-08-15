@@ -209,12 +209,10 @@ QupZilla* TabbedWebView::mainWindow() const
 
 void TabbedWebView::moveToWindow(QupZilla* window)
 {
-    disconnect(this, SIGNAL(statusBarMessage(QString)), p_QupZilla->statusBar(), SLOT(showMessage(QString)));
     disconnect(p_QupZilla, SIGNAL(setWebViewMouseTracking(bool)), this, SLOT(trackMouse(bool)));
 
     p_QupZilla = window;
 
-    connect(this, SIGNAL(statusBarMessage(QString)), p_QupZilla->statusBar(), SLOT(showMessage(QString)));
     connect(p_QupZilla, SIGNAL(setWebViewMouseTracking(bool)), this, SLOT(trackMouse(bool)));
 
     // Tracking mouse also on tabs created in fullscreen

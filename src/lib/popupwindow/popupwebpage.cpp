@@ -35,10 +35,6 @@ PopupWebPage::PopupWebPage(QWebEnginePage::WebWindowType type, QupZilla* mainCla
     : WebPage()
     , p_QupZilla(mainClass)
     , m_type(type)
-    , m_createNewWindow(false)
-    , m_menuBarVisible(false)
-    , m_statusBarVisible(false)
-    , m_toolBarVisible(false)
     , m_isLoading(false)
     , m_progress(0)
 {
@@ -58,26 +54,7 @@ QupZilla* PopupWebPage::mainWindow() const
 
 void PopupWebPage::slotGeometryChangeRequested(const QRect &rect)
 {
-    if (rect.isValid()) {
-        m_createNewWindow = true;
-    }
-
     m_geometry = rect;
-}
-
-void PopupWebPage::slotMenuBarVisibilityChangeRequested(bool visible)
-{
-    m_menuBarVisible = visible;
-}
-
-void PopupWebPage::slotStatusBarVisibilityChangeRequested(bool visible)
-{
-    m_statusBarVisible = visible;
-}
-
-void PopupWebPage::slotToolBarVisibilityChangeRequested(bool visible)
-{
-    m_toolBarVisible = visible;
 }
 
 void PopupWebPage::slotLoadStarted()
@@ -101,25 +78,12 @@ void PopupWebPage::slotLoadFinished(bool state)
 
 void PopupWebPage::checkBehaviour()
 {
-    // If menubar/statusbar/toolbar visibility is explicitly set in window.open call,
-    // at least one of those variables will be false.
-    // If so, we should open new window.
-    // But not when all visibilities are false, it occurs with target=_blank links
-
-    if (!m_createNewWindow && (!m_menuBarVisible || !m_statusBarVisible || !m_toolBarVisible)
-            && !(!m_menuBarVisible && !m_statusBarVisible && !m_toolBarVisible)) {
-        m_createNewWindow = true;
-    }
-
-    if (m_createNewWindow) {
+    if (m_type == QWebEnginePage::WebDialog) {
         PopupWebView* view = new PopupWebView;
         view->setWebPage(this);
 
         PopupWindow* popup = new PopupWindow(view);
         popup->setWindowGeometry(m_geometry);
-        popup->setMenuBarVisibility(m_menuBarVisible);
-        popup->setStatusBarVisibility(m_statusBarVisible);
-        popup->setToolBarVisibility(m_toolBarVisible);
         popup->show();
 
         if (m_isLoading) {
@@ -129,9 +93,6 @@ void PopupWebPage::checkBehaviour()
         p_QupZilla->addDeleteOnCloseWidget(popup);
 
         disconnect(this, SIGNAL(geometryChangeRequested(QRect)), this, SLOT(slotGeometryChangeRequested(QRect)));
-        disconnect(this, SIGNAL(menuBarVisibilityChangeRequested(bool)), this, SLOT(slotMenuBarVisibilityChangeRequested(bool)));
-        disconnect(this, SIGNAL(toolBarVisibilityChangeRequested(bool)), this, SLOT(slotToolBarVisibilityChangeRequested(bool)));
-        disconnect(this, SIGNAL(statusBarVisibilityChangeRequested(bool)), this, SLOT(slotStatusBarVisibilityChangeRequested(bool)));
 
         disconnect(this, SIGNAL(loadStarted()), this, SLOT(slotLoadStarted()));
         disconnect(this, SIGNAL(loadProgress(int)), this, SLOT(slotLoadProgress(int)));
@@ -141,6 +102,8 @@ void PopupWebPage::checkBehaviour()
         int index = p_QupZilla->tabWidget()->addView(QUrl(), Qz::NT_CleanSelectedTab);
         TabbedWebView* view = p_QupZilla->weView(index);
         view->setWebPage(this);
+        if (m_type == QWebEnginePage::WebBrowserWindow)
+            p_QupZilla->tabWidget()->detachTab(index);
 
         if (m_isLoading) {
             view->fakeLoadingProgress(m_progress);

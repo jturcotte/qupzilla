@@ -33,9 +33,6 @@ public:
 
 private slots:
     void slotGeometryChangeRequested(const QRect &rect);
-    void slotMenuBarVisibilityChangeRequested(bool visible);
-    void slotStatusBarVisibilityChangeRequested(bool visible);
-    void slotToolBarVisibilityChangeRequested(bool visible);
 
     void slotLoadStarted();
     void slotLoadProgress(int prog);
@@ -46,11 +43,7 @@ private slots:
 private:
     QupZilla* p_QupZilla;
     QWebEnginePage::WebWindowType m_type;
-    bool m_createNewWindow;
 
-    bool m_menuBarVisible;
-    bool m_statusBarVisible;
-    bool m_toolBarVisible;
     QRect m_geometry;
 
     bool m_isLoading;
